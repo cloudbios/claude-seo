@@ -136,6 +136,17 @@ def route(workflow: str) -> dict:
                     "focus": "saved-page-family-sample"}
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional programmatic sample reviewer is not staged."}
+    if workflow == "competitor-pages":
+        required = ("scripts/codex_comparison.py", "scripts/codex_planning.py",
+                    ".codex/agents/seo-codex-competitor-pages.toml",
+                    ".agents/skills/seo-codex-competitor-pages/SKILL.md",
+                    ".agents/skills/seo-codex-competitor-pages/references/review.md",
+                    ".agents/skills/seo-codex-competitor-pages/LICENSE.txt")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-competitor-pages",
+                    "focus": "two-subject-comparison-brief"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional comparison-brief adapter is not staged."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}

@@ -66,8 +66,8 @@ in the staged methodology.
 ```
 
 The drift stage copies 34 files and registers seven profiles. It does not add
-a role to the core sampled audit. All eight optional workflows together
-copy 68 files and register fourteen profiles; the shared helper is copied once.
+a role to the core sampled audit. All nine optional workflows together
+copy 73 files and register fifteen profiles; the shared helper is copied once.
 
 Use the supplied prepared runtime and a dedicated absolute state root:
 

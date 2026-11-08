@@ -67,8 +67,8 @@ saved sample. Recommendations can identify the further evidence needed.
   --register-agents --programmatic-review
 ```
 
-This stages 34 files and seven profiles. All eight optional workflows stage
-68 files and fourteen profiles, with the shared helper copied once.
+This stages 34 files and seven profiles. All nine optional workflows stage
+73 files and fifteen profiles, with the shared helper copied once.
 
 Run commands through the prepared runtime and a dedicated absolute state root.
 
