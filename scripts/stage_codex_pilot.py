@@ -110,6 +110,15 @@ GEO_FILES = (
      ".agents/skills/seo-codex-geo/references/review.md"),
     ("adapters/codex/skills/seo-codex-geo/LICENSE.txt", ".agents/skills/seo-codex-geo/LICENSE.txt"),
 )
+PROGRAMMATIC_FILES = (
+    ("scripts/codex_programmatic.py", "scripts/codex_programmatic.py"),
+    ("adapters/codex/agents/seo-codex-programmatic.toml", ".codex/agents/seo-codex-programmatic.toml"),
+    ("adapters/codex/skills/seo-codex-programmatic/SKILL.md", ".agents/skills/seo-codex-programmatic/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-programmatic/references/review.md",
+     ".agents/skills/seo-codex-programmatic/references/review.md"),
+    ("adapters/codex/skills/seo-codex-programmatic/LICENSE.txt",
+     ".agents/skills/seo-codex-programmatic/LICENSE.txt"),
+)
 AGENT_REGISTRATION = '''[agents.seo-codex-technical]
 description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
 config_file = "agents/seo-codex-technical.toml"
@@ -170,6 +179,11 @@ GEO_AGENT_REGISTRATION = '''
 description = "Review saved source HTML for passage clarity, attribution and observed preview controls."
 config_file = "agents/seo-codex-geo.toml"
 '''
+PROGRAMMATIC_AGENT_REGISTRATION = '''
+[agents.seo-codex-programmatic]
+description = "Review two to five successful saved captures for bounded programmatic page-template risks."
+config_file = "agents/seo-codex-programmatic.toml"
+'''
 STAGE_INSTRUCTIONS = """# Bounded Codex SEO pilot
 
 Use only `.agents/skills/seo-codex-pilot/SKILL.md` for this pilot. Do not invoke
@@ -197,7 +211,7 @@ dedicated directory> run codex_pilot.py ...`. The state root must be supplied
 by the caller and must not overlap this source project. If it is missing,
 request it; do not borrow a global or Claude state/configuration directory.
 The Codex runner allows only `codex_pilot.py`, `codex_audit.py`,
-`codex_visual.py`, `codex_sitemap.py`, `codex_agentic.py`, `codex_brief.py`, `codex_plan.py` and `codex_drift.py`;
+`codex_visual.py`, `codex_sitemap.py`, `codex_agentic.py`, `codex_brief.py`, `codex_plan.py`, `codex_drift.py` and `codex_programmatic.py`;
 each must be present in this stage to run. It refuses
 installation and providers.
 Run its `doctor --json` before the audit. Its clean environment is process
@@ -285,6 +299,24 @@ observed preview controls. These observations do not measure AI visibility,
 citations, crawler access or eligibility. The native reviewer writes only its
 reserved findings file; the coordinator finalizes after observing it stop.
 """
+PROGRAMMATIC_INSTRUCTIONS = """
+## Optional saved-capture programmatic review
+
+This stage includes `.agents/skills/seo-codex-programmatic/SKILL.md`. Use the
+standalone native programmatic reviewer with two to five successful saved
+captures. Preserve the captures and supply an absolute input path and a new
+output directory. The reviewer is separate from the sampled audit roles.
+All analysis uses saved evidence, with no new fetch or site changes.
+
+Use the caller's prepared Python and dedicated absolute state root for every
+command through `scripts/runtime.py --host codex --state-root ABS_STATE run`.
+First run `codex_programmatic.py prepare --input ABS_INPUT --output NEW_OUTPUT`,
+then `codex_programmatic.py validate --output NEW_OUTPUT`. Run the native
+reviewer, observe its termination, then run
+`codex_programmatic.py finalize --output NEW_OUTPUT` and
+`codex_programmatic.py validate --output NEW_OUTPUT` through that same runtime.
+The shared codex_planning.py module supplies support for the saved evidence.
+"""
 CORE_INSTRUCTIONS = """# Bounded Codex SEO core
 
 Use `.agents/skills/seo-codex/SKILL.md` to route requests. Its supported workflows
@@ -346,6 +378,7 @@ def stage_pilot(
     strategy_plan: bool = False,
     source_drift: bool = False,
     geo_review: bool = False,
+    programmatic_review: bool = False,
     schema_hook_python: Path | None = None,
 ) -> dict:
     """Copy the explicit allowlist into a new or existing empty directory.
@@ -375,7 +408,7 @@ def stage_pilot(
         if not hook_python.is_file() or not os.access(hook_python, os.X_OK):
             raise StageError("Hook interpreter must be an existing executable file")
 
-    core_orchestration = core_orchestration or visual_evidence or sitemap_analysis or agentic_report or content_brief or strategy_plan or source_drift or geo_review
+    core_orchestration = core_orchestration or visual_evidence or sitemap_analysis or agentic_report or content_brief or strategy_plan or source_drift or geo_review or programmatic_review
     runtime_foundation = runtime_foundation or core_orchestration
     payloads: list[tuple[str, str, bytes]] = []
     sources = (COPY_FILES + (FOUNDATION_FILES if runtime_foundation else ())
@@ -383,11 +416,12 @@ def stage_pilot(
                + (VISUAL_FILES if visual_evidence else ())
                + (SITEMAP_FILES if sitemap_analysis else ())
                + (AGENTIC_FILES if agentic_report else ())
-               + (PLANNING_FILES if content_brief or strategy_plan or source_drift else ())
+               + (PLANNING_FILES if content_brief or strategy_plan or source_drift or programmatic_review else ())
                + (BRIEF_FILES if content_brief else ())
                + (PLAN_FILES if strategy_plan else ())
                + (DRIFT_FILES if source_drift else ())
-               + (GEO_FILES if geo_review else ()))
+               + (GEO_FILES if geo_review else ())
+               + (PROGRAMMATIC_FILES if programmatic_review else ()))
     for source, destination in sources:
         path = root / source
         _reject_symlinks(path)
@@ -405,7 +439,8 @@ def stage_pilot(
                     + (BRIEF_INSTRUCTIONS if content_brief else "")
                     + (PLAN_INSTRUCTIONS if strategy_plan else "")
                     + (DRIFT_INSTRUCTIONS if source_drift else "")
-                    + (GEO_INSTRUCTIONS if geo_review else ""))
+                    + (GEO_INSTRUCTIONS if geo_review else "")
+                    + (PROGRAMMATIC_INSTRUCTIONS if programmatic_review else ""))
     generated = {"AGENTS.md": instructions.encode("utf-8")}
     if register_agents:
         generated[".codex/config.toml"] = (
@@ -417,6 +452,7 @@ def stage_pilot(
             + (PLAN_AGENT_REGISTRATION if strategy_plan else "")
             + (DRIFT_AGENT_REGISTRATION if source_drift else "")
             + (GEO_AGENT_REGISTRATION if geo_review else "")
+            + (PROGRAMMATIC_AGENT_REGISTRATION if programmatic_review else "")
         ).encode("utf-8")
     if hook_python is not None:
         argv = [str(hook_python), "-I", "-B", str(output / "hooks" / "validate-schema.py")]
@@ -484,6 +520,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Include saved-capture change comparison and its native reviewer; implies core orchestration")
     parser.add_argument("--geo-review", action="store_true",
                         help="Include saved-source GEO review and its native reviewer; implies core orchestration")
+    parser.add_argument("--programmatic-review", action="store_true",
+                        help="Include saved-capture programmatic review and its native reviewer; implies core orchestration")
     parser.add_argument("--schema-hook-python", type=Path,
                         help="Generate an untrusted local schema hook using this absolute prepared interpreter")
     args = parser.parse_args(argv)
@@ -499,6 +537,7 @@ def main(argv: list[str] | None = None) -> int:
                                strategy_plan=args.strategy_plan,
                                source_drift=args.source_drift,
                                geo_review=args.geo_review,
+                               programmatic_review=args.programmatic_review,
                                schema_hook_python=args.schema_hook_python)
     except (OSError, StageError) as exc:
         print(f"Pilot staging refused: {exc}", file=sys.stderr)

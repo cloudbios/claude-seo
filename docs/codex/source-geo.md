@@ -48,8 +48,8 @@ and rendered behavior remain unmeasured.
 ```
 
 This copies 32 files and registers seven profiles. The four added files are
-the native GEO profile, skill, methodology and MIT notice. With all seven
-optional flags selected, staging copies 63 files and registers thirteen
+the native GEO profile, skill, methodology and MIT notice. With all eight
+optional flags selected, staging copies 68 files and registers fourteen
 profiles. The Python dispatch allowlist gains no new command.
 
 The route and new-plan gate require the GEO resources to be listed in the

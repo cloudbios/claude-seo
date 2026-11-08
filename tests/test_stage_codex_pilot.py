@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES + stage.DRIFT_FILES + stage.GEO_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES + stage.DRIFT_FILES + stage.GEO_FILES + stage.PROGRAMMATIC_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -355,7 +355,7 @@ class StagePilotTests(unittest.TestCase):
 
     def test_missing_shared_planning_helper_leaves_no_output(self):
         (self.source / "scripts/codex_planning.py").unlink()
-        for option in ("content_brief", "strategy_plan", "source_drift"):
+        for option in ("content_brief", "strategy_plan", "source_drift", "programmatic_review"):
             with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
                 stage.stage_pilot(self.output, source_root=self.source, **{option: True})
             self.assertFalse(self.output.exists())
@@ -486,6 +486,135 @@ class StagePilotTests(unittest.TestCase):
                 with mock.patch("builtins.print"):
                     self.assertEqual(stage.main(["--output", str(self.output), *flags]), 0)
                 self.assertIs(stage_mock.call_args.kwargs["geo_review"], enabled)
+
+    def test_programmatic_option_has_exact_payload_and_scoped_registration(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    programmatic_review=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 34)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        added = {(row["source"], row["destination"]) for row in manifest["files"]} - set(
+            stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES)
+        self.assertEqual(added, {
+            ("scripts/codex_planning.py", "scripts/codex_planning.py"),
+            ("scripts/codex_programmatic.py", "scripts/codex_programmatic.py"),
+            ("adapters/codex/agents/seo-codex-programmatic.toml",
+             ".codex/agents/seo-codex-programmatic.toml"),
+            ("adapters/codex/skills/seo-codex-programmatic/SKILL.md",
+             ".agents/skills/seo-codex-programmatic/SKILL.md"),
+            ("adapters/codex/skills/seo-codex-programmatic/references/review.md",
+             ".agents/skills/seo-codex-programmatic/references/review.md"),
+            ("adapters/codex/skills/seo-codex-programmatic/LICENSE.txt",
+             ".agents/skills/seo-codex-programmatic/LICENSE.txt"),
+        })
+        actual_files = {path.relative_to(self.output).as_posix()
+                        for path in self.output.rglob("*") if path.is_file()}
+        self.assertEqual(actual_files, set(destinations) | {
+            "AGENTS.md", ".codex/config.toml", "stage-manifest.json"})
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
+            "seo-codex-images", "seo-codex-local", "seo-codex-hreflang", "seo-codex-programmatic",
+        })
+        for name, agent in config["agents"].items():
+            self.assertEqual(set(agent), {"description", "config_file"})
+            self.assertEqual(agent["config_file"], f"agents/{name}.toml")
+            self.assertTrue((self.output / ".codex" / agent["config_file"]).is_file())
+        for row in manifest["files"] + manifest["generated_files"]:
+            data = (self.output / row["destination"]).read_bytes()
+            self.assertEqual(row["sha256"], hashlib.sha256(data).hexdigest())
+            self.assertEqual(row["bytes"], len(data))
+            if "source" in row:
+                self.assertEqual(data, (self.source / row["source"]).read_bytes())
+        instructions = (self.output / "AGENTS.md").read_text()
+        self.assertIn("standalone native programmatic reviewer with two to five successful saved", instructions)
+        self.assertIn("reviewer is separate from the sampled audit roles", instructions)
+        self.assertIn("no new fetch", instructions)
+        self.assertIn("scripts/runtime.py --host codex --state-root ABS_STATE run", instructions)
+        sequence = (
+            "codex_programmatic.py prepare --input ABS_INPUT --output NEW_OUTPUT",
+            "codex_programmatic.py validate --output NEW_OUTPUT",
+            "Run the native",
+            "observe its termination",
+            "codex_programmatic.py finalize --output NEW_OUTPUT",
+            "codex_programmatic.py validate --output NEW_OUTPUT",
+        )
+        previous = instructions.index("## Optional saved-capture programmatic review")
+        for command in sequence:
+            previous = instructions.index(command, previous) + len(command)
+
+    def test_programmatic_registration_remains_opt_in(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, programmatic_review=True)
+        self.assertEqual(len(manifest["files"]), 34)
+        self.assertFalse((self.output / ".codex/config.toml").exists())
+
+    def test_programmatic_and_other_planning_adapters_share_helper_once(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, content_brief=True,
+                                    strategy_plan=True, source_drift=True, programmatic_review=True,
+                                    register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 49)
+        self.assertEqual(destinations.count("scripts/codex_planning.py"), 1)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 10)
+
+    def test_all_eight_optional_workflows_remain_additive(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
+                                    visual_evidence=True, agentic_report=True, content_brief=True,
+                                    strategy_plan=True, source_drift=True, geo_review=True,
+                                    programmatic_review=True, core_orchestration=True,
+                                    runtime_foundation=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 68)
+        self.assertEqual(destinations.count("scripts/codex_planning.py"), 1)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(len(config["agents"]), 14)
+        self.assertIn("seo-codex-programmatic", config["agents"])
+
+    def test_each_missing_programmatic_resource_leaves_no_output(self):
+        for source, _ in stage.PROGRAMMATIC_FILES:
+            with self.subTest(source=source):
+                path = self.source / source
+                contents = path.read_bytes()
+                path.unlink()
+                with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+                    stage.stage_pilot(self.output, source_root=self.source, programmatic_review=True,
+                                      register_agents=True)
+                self.assertFalse(self.output.exists())
+                path.write_bytes(contents)
+
+    def test_unselected_programmatic_resources_are_not_required_or_staged(self):
+        for source, _ in stage.PROGRAMMATIC_FILES:
+            (self.source / source).unlink()
+        cases = (
+            ({}, 8, 2),
+            ({"core_orchestration": True}, 28, 6),
+            ({"sitemap_analysis": True, "visual_evidence": True, "agentic_report": True,
+              "content_brief": True, "strategy_plan": True, "source_drift": True,
+              "geo_review": True}, 63, 13),
+        )
+        for index, (options, file_count, profile_count) in enumerate(cases):
+            with self.subTest(options=options):
+                output = self.base / f"without-programmatic-{index}"
+                manifest = stage.stage_pilot(output, source_root=self.source,
+                                            register_agents=True, **options)
+                self.assertEqual(len(manifest["files"]), file_count)
+                config = tomllib.loads((output / ".codex/config.toml").read_text())
+                self.assertEqual(len(config["agents"]), profile_count)
+                self.assertNotIn("seo-codex-programmatic", config["agents"])
+                self.assertNotIn("Optional saved-capture programmatic review", (output / "AGENTS.md").read_text())
+                self.assertFalse((output / "scripts/codex_programmatic.py").exists())
+                self.assertFalse((output / ".agents/skills/seo-codex-programmatic").exists())
+                self.assertFalse((output / ".codex/agents/seo-codex-programmatic.toml").exists())
+
+    def test_programmatic_cli_option_is_forwarded_and_defaults_off(self):
+        for flags, enabled in (([], False), (["--programmatic-review"], True)):
+            with self.subTest(flags=flags), mock.patch.object(stage, "stage_pilot") as stage_mock:
+                stage_mock.return_value = {"files": [], "compatibility_status": "not_verified_by_staging"}
+                with mock.patch("builtins.print"):
+                    self.assertEqual(stage.main(["--output", str(self.output), *flags]), 0)
+                self.assertIs(stage_mock.call_args.kwargs["programmatic_review"], enabled)
 
     def test_missing_sitemap_parser_leaves_no_output(self):
         (self.source / "scripts/sitemap_discovery.py").unlink()

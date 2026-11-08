@@ -125,6 +125,17 @@ def route(workflow: str) -> dict:
                     "focus": "saved-capture-comparison"}
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional saved-capture drift adapter is not staged; no fetch or monitoring was started."}
+    if workflow == "programmatic":
+        required = ("scripts/codex_programmatic.py", "scripts/codex_planning.py",
+                    ".codex/agents/seo-codex-programmatic.toml",
+                    ".agents/skills/seo-codex-programmatic/SKILL.md",
+                    ".agents/skills/seo-codex-programmatic/references/review.md",
+                    ".agents/skills/seo-codex-programmatic/LICENSE.txt")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-programmatic",
+                    "focus": "saved-page-family-sample"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional programmatic sample reviewer is not staged."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}

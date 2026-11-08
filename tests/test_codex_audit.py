@@ -168,6 +168,32 @@ def test_drift_route_requires_complete_payload_without_fetching(tmp_path, monkey
         assert "drift" not in audit.SUPPORTED_ROLES
 
 
+def test_programmatic_route_requires_complete_payload_without_fetching(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("programmatic")["status"] == "unavailable"
+        paths = ("scripts/codex_programmatic.py", "scripts/codex_planning.py",
+                 ".codex/agents/seo-codex-programmatic.toml",
+                 ".agents/skills/seo-codex-programmatic/SKILL.md",
+                 ".agents/skills/seo-codex-programmatic/references/review.md",
+                 ".agents/skills/seo-codex-programmatic/LICENSE.txt")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("programmatic") == {
+            "status": "available", "workflow": "programmatic", "skill": "seo-codex-programmatic",
+            "focus": "saved-page-family-sample"
+        }
+        for path in paths:
+            target = tmp_path / path
+            target.unlink()
+            assert audit.route("programmatic")["status"] == "unavailable"
+            target.write_text("staged fixture")
+        assert "programmatic" not in audit.SUPPORTED_ROLES
+
+
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):
