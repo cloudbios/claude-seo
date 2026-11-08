@@ -80,6 +80,28 @@ def test_sitemap_route_requires_complete_optional_payload_without_network(tmp_pa
         assert "sitemap" not in audit.SUPPORTED_ROLES
 
 
+def test_agentic_route_requires_complete_optional_payload_without_network(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("agentic")["status"] == "unavailable"
+        paths = ("scripts/codex_agentic.py", "scripts/lighthouse_agentic.py",
+                 ".codex/agents/seo-codex-agentic.toml",
+                 ".agents/skills/seo-codex-agentic/SKILL.md",
+                 ".agents/skills/seo-codex-agentic/references/review.md")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("agentic") == {
+            "status": "available", "workflow": "agentic",
+            "skill": "seo-codex-agentic", "focus": "saved-lighthouse-report"
+        }
+        (tmp_path / paths[1]).unlink()
+        assert audit.route("agentic")["status"] == "unavailable"
+        assert "agentic" not in audit.SUPPORTED_ROLES
+
+
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):

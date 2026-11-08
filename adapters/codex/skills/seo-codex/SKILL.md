@@ -1,6 +1,6 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual or sitemap analysis, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual, sitemap or saved Lighthouse analysis, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
@@ -33,6 +33,7 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `audit` | Read `../seo-codex-audit/SKILL.md`; sampled audit of 1–5 explicit pages, selecting all six roles unless the user requests narrower coverage. |
 | `visual` | When the optional stage is installed, read `../seo-codex-visual/SKILL.md`; separate offline viewport review of an existing verified pilot capture. It does not add a role to the sampled audit. |
 | `sitemap` | When the optional stage is installed, read `../seo-codex-sitemap/SKILL.md`; standalone review of supplied XML and up to five existing verified page captures. It does not add a role to the sampled audit. |
+| `agentic` | When the optional stage is installed, read `../seo-codex-agentic/SKILL.md`; standalone interpretation of a supplied Lighthouse/PSI JSON report. It does not run Lighthouse or add a role to the sampled audit. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
 
 Use `page` for one-page requests and `audit` for an explicit page sample or
@@ -54,7 +55,7 @@ workflow that addresses the user's intent. Do not invoke a nearby capability
 without telling the user how its coverage differs.
 
 This includes unported `content-brief`, `geo`,
-`agentic`, `plan`, `programmatic`, `competitor-pages`, `maps`,
+`plan`, `programmatic`, `competitor-pages`, `maps`,
 `google`, `backlinks`, `cluster`, `sxo`, `drift`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence
 of missing credentials. Never inspect credentials, install dependencies,

@@ -48,9 +48,11 @@ prepared-runtime doctor, then let the skill orchestrate the audit:
   --host codex --state-root /private/tmp/seo-core-state doctor --json
 ```
 
-The runtime dispatch allowlist is exactly `codex_pilot.py` and
-`codex_audit.py`. Provider modules, installers and legacy credential discovery
-remain unavailable. The host's sandbox and approvals still apply. The
+The core stage dispatches `codex_pilot.py` and `codex_audit.py`. Optional
+stages add `codex_visual.py`, `codex_sitemap.py` and `codex_agentic.py`;
+each helper must be explicitly present in the stage before dispatch.
+Provider modules, installers and legacy credential discovery remain
+unavailable. The host's sandbox and approvals still apply. The
 [pilot setup notes](../../adapters/codex/README.md) describe the observed
 desktop registration and older CLI compatibility differences.
 
