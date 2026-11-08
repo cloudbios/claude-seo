@@ -112,7 +112,13 @@ context; these are options, not mandatory templates:
 ## Result contract
 
 Write only `<output>/findings/content-brief.json`. Save early with
-`status="partial"` and empty arrays permitted in every section. Use exactly:
+`status="partial"` and empty arrays permitted in every section.
+
+Update that existing file with one write operation. When using `apply_patch`,
+use `Update File`; do not delete and add the same path in one patch. Keep a
+valid partial result in place until its replacement is ready.
+
+Use exactly:
 
 ```json
 {

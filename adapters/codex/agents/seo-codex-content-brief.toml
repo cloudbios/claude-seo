@@ -34,6 +34,10 @@ array of valid manifest source IDs. Cite input fields for user claims and
 source IDs plus field paths or short excerpts for source observations. Source
 basis requires at least one source ID. Separate observation from proposal.
 
+Update the existing findings file in one write operation. With apply_patch,
+use Update File; do not delete and add the same path in one patch. Keep the
+valid partial result in place until its replacement is ready.
+
 Complete all nine sections with substantive useful entries before setting
 status="complete". In improve mode source_assessment must include a source
 entry citing the target ID. Each outline section needs a reader question,
