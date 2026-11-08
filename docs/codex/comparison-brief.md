@@ -72,5 +72,44 @@ tables remain separate from the per-page audit task matrix.
 
 ## Validation
 
-Implementation and native acceptance results are recorded after the isolated
-run completes.
+The implementation passed 1,314 selected tests, including 114 comparison
+tests. One existing live-network renderer test was deselected. Ruff and
+skill/profile validation passed. Independent source review accepted the
+implementation after tightening duplicate-excerpt rejection across locators.
+
+Two recorded native acceptance cases produced complete six-cell briefs.
+
+| Case | Captures | Checked behavior |
+| --- | ---: | --- |
+| Different billing units | 2 | Annual workspace billing versus monthly per-seat billing, preserved minimums and missing support information. |
+| Conflicting prices | 3 | Two incompatible Atlas price claims, Beacon's different currency, missing Atlas support and shared captured export claims. |
+
+Both native authors saved observed partial results and reached reported
+terminal states before finalization. The receipt records a maximum of two
+active authors, zero native-result correction turns and zero remaining
+authors. The parent process exited 0. A trailing newline serialization issue
+in the coordinator's receipt was repaired before final validation.
+
+All 34 staged files matched implementation commit
+`a5430ccf0a1e2ff165cbc22e9a6dafd75f92ec63`. All 69 baseline files remained
+unchanged. Exact evidence quotes and subject ownership validated for both
+briefs. Embedded instruction-like text was treated as source data.
+
+Acceptance used saved HTML fixtures with fictional product terms, recorded
+Codex CLI `0.154.0-alpha.6.2`, explicit native registration and configured
+`gpt-5.6-sol` with high reasoning. Child runtime metadata, live subject facts
+and fresh desktop discovery remain unverified.
+
+Artifacts are retained under `/private/tmp/seo-codex-comparison-test/output/`,
+including both briefs, the native receipt, technical acceptance and independent
+specialist acceptance.
+
+The stage-manifest SHA-256 is
+`f7b8ddb294f1421f66242a840b1d4d3508f298cafdfc2bd1c79ea91329c73d4e`.
+The native-receipt SHA-256 is
+`9dd2ac3fdb0eb78d52a644ad667be3242d6e3a6d6949e763334d361e49668e67`.
+
+| Case | Final brief SHA-256 |
+| --- | --- |
+| Different billing units | `1b3022a26f61392c3453cb6e1078c0c95df85057f94c5beb8f953125b102c843` |
+| Conflicting prices | `c3ba08ac7c4ddfc19c281a1e522f8a07032c30b4960af36a4da1152acc4d0963` |
