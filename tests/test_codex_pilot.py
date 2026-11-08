@@ -171,7 +171,7 @@ class PilotTests(unittest.TestCase):
 
     def test_extra_result_paths_do_not_expand_pilot_completion(self):
         self.capture()
-        for role in ("content", "images"):
+        for role in ("content", "images", "local", "hreflang"):
             self.role(role)
             path = pilot.child(self.output, "findings/" + role + ".json")
             self.assertEqual(path.parent.name, "findings")

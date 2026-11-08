@@ -40,10 +40,12 @@ The capture's fixture-versus-fetched origin remains visible.
   --register-agents --sitemap-analysis
 ```
 
-The flag implies the core/runtime stage and adds five files, producing 27
-copied files. It is independent of `--visual-evidence`; enabling both copies
-32 files and registers six roles. The native sitemap reviewer remains a
-standalone workflow, outside the sampled audit's four-role plan.
+The flag implies the core/runtime stage and adds five files, producing 33
+copied files after the local/hreflang batch. It is independent of
+`--visual-evidence`; enabling both copies 38 files and registers eight roles.
+The native sitemap reviewer remains a standalone workflow, outside the
+sampled audit's six-role plan. The acceptance receipt below tested the earlier
+27-file sitemap stage.
 
 From the staged project, use a prepared interpreter and an absolute dedicated
 state root:

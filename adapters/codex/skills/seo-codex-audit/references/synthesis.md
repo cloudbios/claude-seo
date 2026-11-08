@@ -6,7 +6,8 @@ not a substitute for it. These phases adapt upstream
 `skills/seo/references/thinking-framework.md` and
 `thinking-framework-validate-act.md` under the included MIT license. They do
 not activate upstream provider, rendering, rewriting, baseline or scheduling
-workflows. Content and image reviews remain limited to captured source HTML.
+workflows. Content, images, local and hreflang reviews remain limited to the
+assigned captured source and retained transport metadata.
 
 ## Perceive
 
@@ -34,6 +35,19 @@ empty alt and possible decoration; declared sizing, responsive and loading
 markup from visual accuracy, intrinsic dimensions and measured performance.
 File extensions do not verify formats or bytes. Missing rendering cannot
 establish above-fold placement, an LCP image or actual CLS.
+
+For local findings, keep business identity, address, phone, hours and map or
+review links tied to their specific on-page entity. Differences between a
+person, department and branch are not necessarily business inconsistencies.
+A map link does not verify a Business Profile, and a quoted rating does not
+establish review health. Service-area businesses may intentionally omit a
+public street address; do not prescribe publication without that context.
+
+For hreflang, separate the page's declarations from unobserved alternate
+pages. Missing return links, target availability, content equivalence and the
+search engine's canonical selection remain unverified. No declarations on a
+monolingual page need not be a defect. Do not amplify a single questionable
+annotation into a claim that the whole site's hreflang is ignored.
 
 Prefer the underlying, evidenced cause over multiple recommendations for its
 symptoms. Separate observed markup from actual search-engine indexing, rich
@@ -74,5 +88,5 @@ End with what the next review should inspect and which unresolved question it
 would answer. Preserve incomplete coverage and active-claim blockers even when
 the available findings are useful. Do not present an overall SEO health score,
 numeric content/readability or E-E-A-T scores from this sample. Name the roles
-actually selected and reviewed so a focused content or images report cannot
-imply four-role coverage.
+actually selected and reviewed so a focused report cannot imply six-role
+coverage.

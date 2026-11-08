@@ -26,7 +26,7 @@ MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_INPUT_BYTES = 64 * 1024
 MANIFEST = "audit-manifest.json"
 ROLES = ("technical", "schema")
-SUPPORTED_ROLES = (*ROLES, "content", "images")
+SUPPORTED_ROLES = (*ROLES, "content", "images", "local", "hreflang")
 
 
 class AuditError(ValueError):
@@ -38,7 +38,7 @@ def route(workflow: str) -> dict:
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-pilot", "focus": workflow}
     if workflow == "audit":
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-audit", "focus": "explicit-page-sample"}
-    if workflow in ("content", "images"):
+    if workflow in ("content", "images", "local", "hreflang"):
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-" + workflow, "focus": workflow}
     if workflow == "visual":
         required = ("scripts/codex_visual.py", ".codex/agents/seo-codex-visual.toml",

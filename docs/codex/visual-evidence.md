@@ -38,8 +38,10 @@ report unavailable rather than assume equivalent process cleanup.
 
 `--visual-evidence` includes the core adapter plus five explicitly listed
 files: the visual helper, upstream renderer module, native role, skill and
-review reference. It stages 27 copied files. Without this flag, the core stage
-retains its 22 files and four roles, and the original pilot retains eight files.
+review reference. With the local/hreflang batch, it stages 33 copied files.
+Without this flag, the core stage has 28 files and six roles, and the original
+pilot retains eight files. The acceptance receipt below tested the earlier
+27-file visual stage.
 The `visual` route is available only when the optional staged resources exist.
 
 Supply a successful existing `codex_pilot.py` capture directory, a new visual

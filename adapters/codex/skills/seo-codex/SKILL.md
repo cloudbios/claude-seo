@@ -1,12 +1,12 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to the technical/schema page pilot, qualitative content or image-markup reviews, sampled audits of up to five explicit pages, optional saved-HTML visual review, or prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual or sitemap analysis, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
 
-This adapter supports technical, structured-data, qualitative content and
-image-markup evidence from explicit pages. It does not register a `/seo` slash
+This adapter supports technical, structured-data, content, image-markup, local
+and hreflang evidence from explicit pages. It does not register a `/seo` slash
 command or replace installed SEO skills. Use staged resources only; never fall
 back to a global `seo-*` skill.
 
@@ -28,7 +28,9 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `schema` | The same page pilot, emphasizing the user's structured-data question. |
 | `content` | Read `../seo-codex-content/SKILL.md`; qualitative source-HTML review of 1–5 explicit pages using only the content role. |
 | `images` | Read `../seo-codex-images/SKILL.md`; image-markup review of 1–5 explicit pages using only the images role. |
-| `audit` | Read `../seo-codex-audit/SKILL.md`; sampled audit of 1–5 explicit pages, selecting all four roles unless the user requests narrower coverage. |
+| `local` | Read `../seo-codex-local/SKILL.md`; source-based business identity and location declarations using only the local role. |
+| `hreflang` | Read `../seo-codex-hreflang/SKILL.md`; one-page language and alternate-URL declarations using only the hreflang role. |
+| `audit` | Read `../seo-codex-audit/SKILL.md`; sampled audit of 1–5 explicit pages, selecting all six roles unless the user requests narrower coverage. |
 | `visual` | When the optional stage is installed, read `../seo-codex-visual/SKILL.md`; separate offline viewport review of an existing verified pilot capture. It does not add a role to the sampled audit. |
 | `sitemap` | When the optional stage is installed, read `../seo-codex-sitemap/SKILL.md`; standalone review of supplied XML and up to five existing verified page captures. It does not add a role to the sampled audit. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
@@ -52,8 +54,8 @@ workflow that addresses the user's intent. Do not invoke a nearby capability
 without telling the user how its coverage differs.
 
 This includes unported `content-brief`, `geo`,
-`agentic`, `plan`, `programmatic`, `competitor-pages`, `local`, `maps`,
-`hreflang`, `google`, `backlinks`, `cluster`, `sxo`, `drift`, `ecommerce`,
+`agentic`, `plan`, `programmatic`, `competitor-pages`, `maps`,
+`google`, `backlinks`, `cluster`, `sxo`, `drift`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence
 of missing credentials. Never inspect credentials, install dependencies,
 enable providers, submit URLs, generate images or modify the target site to

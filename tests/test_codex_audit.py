@@ -51,7 +51,7 @@ def test_route_never_looks_up_auth_or_runs_network():
         for workflow in ("page", "technical", "schema"):
             assert audit.route(workflow)["skill"] == "seo-codex-pilot"
         assert audit.route("audit")["skill"] == "seo-codex-audit"
-        for workflow in ("content", "images"):
+        for workflow in ("content", "images", "local", "hreflang"):
             assert audit.route(workflow)["skill"] == "seo-codex-" + workflow
         assert audit.route("doctor")["target"] == "runtime"
         for workflow in ("backlinks", "setup", "image-gen", "anything"):
@@ -396,12 +396,12 @@ def test_explicit_invalid_roles_are_rejected_before_output(sample, tmp_path, rol
     assert not output.exists()
 
 
-def test_four_roles_canonical_order_global_cap_and_complete_report(sample, tmp_path):
-    output = tmp_path / "four"
+def test_six_roles_canonical_order_global_cap_and_complete_report(sample, tmp_path):
+    output = tmp_path / "six"
     audit.plan(tmp_path / "urls.json", output, roles=list(reversed(audit.SUPPORTED_ROLES)))
     root, ledger = audit._load(output)
     assert ledger["plan"]["roles"] == list(audit.SUPPORTED_ROLES)
-    assert len(ledger["tasks"]) == 8
+    assert len(ledger["tasks"]) == 12
     audit.capture(output)
     jobs = audit.next_jobs(output, 64)["jobs"]
     assert [job["role"] for job in jobs] == list(audit.ROLES)
@@ -429,7 +429,7 @@ def test_four_roles_canonical_order_global_cap_and_complete_report(sample, tmp_p
         assert f"### {role.title()}: complete" in text
 
 
-@pytest.mark.parametrize("role", ["content", "images"])
+@pytest.mark.parametrize("role", ["content", "images", "local", "hreflang"])
 def test_single_extra_role_cli_plan_and_resume(sample, tmp_path, role):
     output = tmp_path / role
     assert audit.main(["plan", "--urls", str(tmp_path / "urls.json"), "--output", str(output),
@@ -452,7 +452,7 @@ def test_single_extra_role_cli_plan_and_resume(sample, tmp_path, role):
     assert "### Technical" not in Path(report["report"]).read_text()
 
 
-@pytest.mark.parametrize("role", ["content", "images"])
+@pytest.mark.parametrize("role", ["content", "images", "local", "hreflang"])
 @pytest.mark.parametrize("mutation", ["wrong-role", "wrong-capture", "changed", "removed"])
 def test_extra_role_result_identity_and_missing_evidence(sample, tmp_path, role, mutation):
     output = tmp_path / "extra"
@@ -513,7 +513,7 @@ def test_invalid_cli_roles_do_not_create_output(sample, tmp_path, roles):
     assert not output.exists()
 
 
-@pytest.mark.parametrize("role_count", [2, 4])
+@pytest.mark.parametrize("role_count", [2, 4, 6])
 @pytest.mark.parametrize("text", ["Long observed source finding. " * 100, "頁面內容觀察。" * 400])
 def test_five_page_report_has_shared_bounded_excerpt_budget(sample, tmp_path, role_count, text):
     urls = tmp_path / "long-urls.json"
@@ -541,9 +541,25 @@ def test_five_page_report_has_shared_bounded_excerpt_budget(sample, tmp_path, ro
     assert rendered.count("- findings: ") == 5 * role_count * items
     assert rendered.count("- limitations: ") == 5 * role_count * items
     assert rendered.count("[truncated; read role artifact]") == 5 * role_count * items * 2
-    if role_count == 4:
-        assert rendered.count("10 additional findings retained; read role artifact.") == 20
-        assert rendered.count("10 additional limitations retained; read role artifact.") == 20
+    if role_count > 2:
+        assert rendered.count(f"{20 - items} additional findings retained; read role artifact.") == 5 * role_count
+        assert rendered.count(f"{20 - items} additional limitations retained; read role artifact.") == 5 * role_count
     else:
         assert "additional findings" not in rendered
     assert all(path.read_bytes() == original for path, original in artifacts.items())
+
+
+def test_existing_four_role_plan_does_not_add_new_specialists(sample, tmp_path):
+    output = tmp_path / "existing-four"
+    roles = ["technical", "schema", "content", "images"]
+    audit.plan(tmp_path / "urls.json", output, roles=roles)
+    audit.capture(output)
+    _, ledger = audit._load(output)
+    assert ledger["plan"]["roles"] == roles
+    assert len(ledger["tasks"]) == 8
+    for task_id in ledger["tasks"]:
+        result(output, task_id)
+    report = audit.report(output)
+    assert report["status"] == "complete"
+    text = Path(report["report"]).read_text()
+    assert "### Local" not in text and "### Hreflang" not in text

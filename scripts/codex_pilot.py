@@ -30,7 +30,7 @@ CAPTURE_FILES = ("capture/page.html", "capture/parsed.json", "capture/schema.jso
 ROLES = ("technical", "schema")
 # Additional audit specialists may write results without changing the pilot's
 # original two-role validation and finalization contract.
-RESULT_ROLES = (*ROLES, "content", "images")
+RESULT_ROLES = (*ROLES, "content", "images", "local", "hreflang")
 LIMITS = [
     "Source HTML only; rendered DOM and browser checks are unavailable.",
     "No field Core Web Vitals, indexing, traffic, site-wide or provider verification.",
