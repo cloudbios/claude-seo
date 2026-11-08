@@ -7,7 +7,7 @@ description: Review an existing verified page capture using offline desktop and 
 
 Use this optional staged workflow only for a requested visual review. It adds
 separate visual artifacts to an existing verified raw pilot capture; it does
-not add a role to the sampled audit, change its four-role plan, or replace raw
+not add a role to the sampled audit, change its recorded role plan, or replace raw
 technical/schema evidence. Read [references/review.md](references/review.md)
 and include that methodology in the native `seo-codex-visual` brief.
 

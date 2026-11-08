@@ -64,5 +64,56 @@ including when supplied as a fixture, rather than verified rendered content.
 
 ## Validation
 
-Automated checks, independent review and native acceptance results will be
-recorded after completion.
+The implementation at `9356adbed0f6bcc315d39e9560e5c48db5c08080` passed
+621 selected tests. One existing live-network renderer test was deselected.
+Ruff, all five affected skill validators and both native TOML profile checks passed.
+Independent source review found no required fixes.
+
+Regression coverage includes six-role scheduling under the existing two-worker
+cap, focused local/hreflang plans and resume, exact result-role/hash validation,
+unchanged two-role pilot completion, unchanged explicit four-role plans,
+28/33/38-file stages and five-page/six-role report excerpt limits with ASCII
+and multibyte content.
+
+## Native acceptance
+
+The test used Codex CLI `0.154.0-alpha.6.2` with per-run registrations for
+both new native profiles and its supported `gpt-5.6-sol` model at high reasoning.
+Profiles retain inherited model and permission settings. This is a CLI
+acceptance receipt, not a fresh desktop-discovery test.
+
+Two supplied fixtures produced four tasks using only `local` and `hreflang`.
+Every native task saved an observed early partial result, reached an observed
+completed state, and had one start. The coordinator released each claim only
+after termination; at most two reservations were active, with zero left at
+completion. It produced one complete numbered report and its action plan;
+the underlying pilot manifests were not finalized or changed.
+
+Independent review accepted all four findings files and the synthesis. The
+studio's own phone mismatch was separated from a consultant's number. The
+service-area page did not receive a demand to publish an address or add
+hreflang. The hreflang review preserved valid casing, script and region forms,
+identified source-declaration issues, and left return links and target-page
+behavior unverified. Embedded page instructions were treated as data.
+
+All 28 copied source files matched the implementation commit byte-for-byte.
+Fixture, capture, result and report hashes were verified. Acceptance artifacts
+are retained under `/private/tmp/seo-codex-locales-test/output/`:
+
+- `NATIVE-RECEIPT.json`: roles, handles, starts, partial/terminal observations
+  and reservation counts.
+- `TECHNICAL-ACCEPTANCE.json`: source, stage and artifact verification.
+- `SPECIALIST-ACCEPTANCE.json`: independent review of 19 hashed artifacts.
+- `audit/reports/0001.md` and `audit/ACTION-PLAN.md`: accepted output.
+
+| Evidence | SHA-256 |
+|---|---|
+| Stage manifest | `b583ce8ca92e4ca1e3d3132c415ac20db6bd11367339a410299206f8e1481a30` |
+| Studio fixture/capture | `adbb89115971aab06c876f7b9dd04146d6e1c0b6a1c8636dfd1e9be277ce0afb` |
+| Service-area fixture/capture | `c9dd4c0be98aa250780985d0bb4c72a3a7ed16935911248447da088dc5ee0039` |
+| Numbered report | `99420347bfc8b8a11eaa6019688731bcde985321c9c6a99447efbdd88ede88f6` |
+| Action plan | `cc16f9a7520ec41f04302b2dab43620354864ead34f450be2549b6dee3b43c05` |
+
+The acceptance run used local fixture evidence only. It performed no live
+fetch, provider/credential operation, dependency installation, global change,
+site edit or verification of external business or alternate-page claims.
