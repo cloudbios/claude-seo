@@ -93,7 +93,64 @@ adapter; the upstream project has no equivalent `seo-images` agent.
 The existing parser, capture transport, schema checks, role result validation
 and coordinator persistence are reused.
 
-Validation results and tested source identities are recorded here after the
-new role selection and native specialist checks complete. Prior acceptance
-applies to the documented technical/schema cases, not automatically to these
-new role instructions.
+Implementation revision: `49a7819710c4017ef99d064e5102a85b0f346f78`.
+Date: November 8, 2026 (America/Los_Angeles).
+
+- 423 selected tests passed using Python 3.12.14 and pytest 8.4.2, including
+  explicit/legacy role plans, two-role pilot compatibility, four-role
+  scheduling and recovery, staging, runtime isolation and the existing
+  transport/schema regressions.
+- Ruff passed for changed Python files. All four affected skill entrypoints
+  passed skill-creator validation; native TOML fields parsed successfully.
+- Independent review confirmed the selected-role and evidence contracts.
+  It also verified corrected staged methodology paths and report excerpt
+  budgets for five-page, four-role results with ASCII and multibyte text.
+  Full role artifacts remain intact when a report excerpt is shortened.
+
+The native test uses an isolated core stage with 22 copied files and two
+generated files. Every copied payload matches the implementation revision;
+all generated file hashes match the stage manifest. Its SHA-256 is
+`81bd16c9887c249a2beec06983fffa9b28cdd8fc878ca6b1dbe1885def65d6f5`.
+The caller-supplied source-ref label is not used as proof of source identity.
+
+The 1,933-byte supplied HTML fixture has SHA-256
+`dec671a1f6c8e4befd26ca12010f3b0ee14c485c0ca1864c0b267676ad65d30a`.
+It includes attribution and sourcing claims, ordered headings, multiple image
+markup patterns, and an untrusted instruction comment.
+
+The test uses the previously available
+`codex-cli 0.154.0-alpha.6.2` with `gpt-5.6-sol`, high reasoning, workspace-write
+sandbox and explicit per-run native registrations. It changes no persistent
+model settings and does not establish new desktop-discovery acceptance.
+Context7 was used to cross-check the current upstream
+[role registration schema](https://github.com/openai/codex/blob/main/codex-rs/config/src/config_toml.rs)
+and [role override implementation](https://github.com/openai/codex/blob/main/codex-rs/core/src/agent/role.rs).
+The staged registrations use paths relative to their config file; the new
+profiles contain no model or permission overrides. This source check is
+separate from the observed CLI acceptance.
+
+All four exact native roles completed in two waves with at most two active
+reservations. Every selected task started once, the capture remained unchanged,
+and final reconciliation recorded zero active reservations. No page-pilot
+manifest was finalized. The content and images route probes both selected the
+intended new skills.
+
+The final numbered snapshot `reports/0001.md` has SHA-256
+`f9ca18b43281e3be6f18c0af410380fb47d0b5f2fe0ef92a63e4a3279b381d34`.
+Independent review found the new findings grounded in saved fields and source
+excerpts: the content review preserved uncertainty around attribution and
+comparison claims, and the image review distinguished missing, empty and generic
+alt text while recognizing responsive and JavaScript lazy-loading markup.
+No findings followed the untrusted instruction comment or claimed live
+verification of images, expertise, rankings or performance.
+The final action plan also passed independent evidence review: recommendations
+remain proposed follow-ups, with uncertainties, dependencies and verification
+steps. It does not claim those changes or external checks were performed.
+
+The native API exposed canonical role handles but no separate opaque run IDs.
+Local receipts preserve that limitation. This acceptance is a source-fixture
+example, not evidence of rendered-page analysis, image-file optimization,
+provider integrations or all-host compatibility.
+The staged payload, captured artifacts, four findings files and final snapshot
+were checked against their recorded hashes. Native receipts and raw test
+artifacts remain in the isolated local project and are not committed.
