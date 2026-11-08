@@ -1,6 +1,6 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional GEO, visual, sitemap or saved Lighthouse analysis, content briefs, strategy plans, saved-capture comparisons, programmatic sample reviews and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional GEO, visual, sitemap or saved Lighthouse analysis, content and comparison briefs, strategy plans, saved-capture comparisons, programmatic sample reviews and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
@@ -39,6 +39,7 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `plan` | When the optional stage is installed, read `../seo-codex-plan/SKILL.md`; a strategy, roadmap, calendar, site structure and measurement plan using supplied resources and up to five captures. |
 | `drift` | When the optional stage is installed, read `../seo-codex-drift/SKILL.md`; compare two existing captures of the same recorded requested URL and interpret observed changes. No live monitoring or history database is included. |
 | `programmatic` | When the optional stage is installed, read `../seo-codex-programmatic/SKILL.md`; compare 2–5 saved captures from a user-declared page family for useful differences, repetition and template improvements. |
+| `competitor-pages` | When the optional stage is installed, read `../seo-codex-competitor-pages/SKILL.md`; prepare a comparison brief for two named subjects from supplied criteria and 2–5 saved captures. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
 
 Use `page` for one-page requests and `audit` for an explicit page sample or
@@ -59,7 +60,7 @@ unavailable result. Explain the stated limitation and offer only a supported
 workflow that addresses the user's intent. Do not invoke a nearby capability
 without telling the user how its coverage differs.
 
-This includes unported `competitor-pages`, `maps`,
+This includes unported `maps`,
 `google`, `backlinks`, `cluster`, `sxo`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence
 of missing credentials. Never inspect credentials, install dependencies,

@@ -19,10 +19,18 @@ import urllib.request
 from datetime import datetime
 from pathlib import Path
 
+# The explicit bundled root also supports direct extension invocation.
+try:
+    from codex_paths import cache_path, codex_active, config_path, require_write
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    from codex_paths import cache_path, codex_active, config_path, require_write
+
+
 DEFAULT_MODEL = os.environ.get("NANOBANANA_MODEL")
 DEFAULT_RESOLUTION = "1K"
 DEFAULT_RATIO = "1:1"
-OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
+OUTPUT_DIR = cache_path("banana/generated", Path.home() / "Documents" / "nanobanana_generated")
 API_BASE = "https://generativelanguage.googleapis.com/v1beta/models"
 
 VALID_RATIOS = {"1:1", "16:9", "9:16", "4:3", "3:4", "2:3", "3:2",
@@ -55,6 +63,7 @@ def _redact_google_api_key(value):
 def generate_image(prompt, model, aspect_ratio, resolution, api_key,
                    thinking_level=None, image_only=False):
     """Call Gemini API to generate an image."""
+    require_write()
     url = f"{API_BASE}/{model}:generateContent"
 
     modalities = ["IMAGE"] if image_only else ["TEXT", "IMAGE"]
@@ -157,7 +166,16 @@ def main():
         print(json.dumps({"error": True, "message": "No model. Set NANOBANANA_MODEL or pass --model."}))
         sys.exit(1)
 
-    api_key = args.api_key or os.environ.get("GOOGLE_AI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
+    configured_key = None
+    if codex_active():
+        settings = config_path("banana.json")
+        if settings.is_file():
+            try:
+                configured_key = json.loads(settings.read_text(encoding="utf-8")).get("api_key")
+            except (OSError, ValueError):
+                print("Invalid explicit banana.json configuration", file=sys.stderr)
+                sys.exit(2)
+    api_key = args.api_key or configured_key or os.environ.get("GOOGLE_AI_API_KEY") or os.environ.get("GOOGLE_API_KEY")
     if not api_key:
         print(json.dumps({"error": True, "message": "No API key. Set GOOGLE_AI_API_KEY env or pass --api-key"}))
         sys.exit(1)

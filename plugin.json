@@ -1,0 +1,6 @@
+{
+  "$schema": "https://agent-plugins.org/schemas/1.0.0/plugin.schema.json",
+  "name": "seo-codex",
+  "version": "2.5.0",
+  "description": "Codex workflows for comprehensive SEO analysis, adapted from AgriciDaniel's Claude SEO."
+}

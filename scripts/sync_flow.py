@@ -16,6 +16,8 @@ import urllib.error
 import urllib.parse
 import urllib.request
 
+from codex_paths import codex_active
+
 API_ROOT = "https://api.github.com/repos/AgriciDaniel/flow/contents"
 _ALLOWED_HOST = "api.github.com"
 _SIZE_LIMIT = 5 * 1024 * 1024  # 5 MB
@@ -99,6 +101,8 @@ def _base_headers():
 
 def _authed_headers():
     """Returns authenticated headers, or base headers if gh CLI is absent or unauthed."""
+    if codex_active():
+        return _base_headers()
     try:
         result = subprocess.run(
             ["gh", "auth", "token"],
@@ -272,7 +276,8 @@ def record_write(root, path, content, dry_run, changes):
 
 def sync(args):
     root = script_root()
-    refs = root / "skills" / "seo-flow" / "references"
+    skill_dir = "source-skills" if (root / "source-skills").is_dir() else "skills"
+    refs = root / skill_dir / "seo-flow" / "references"
     today = datetime.date.today().isoformat()
     headers = _base_headers()
     changes = {"added": [], "updated": [], "unchanged": [], "hashes": {}}
@@ -301,7 +306,7 @@ def sync(args):
     record_write(root, refs / "prompts" / "README.md", prompt_readme(prompt_rows), args.dry_run, changes)
 
     # Generate SHA-256 lockfile
-    lock_path = root / LOCK_REL
+    lock_path = refs / "flow-prompts.lock"
     lock_lines = [
         "# flow-prompts.lock — SHA-256 baseline for synced FLOW prompts",
         f"# Ref: {args.ref or 'HEAD'} | format: <sha256hex>  <rel_path> (sha256sum-compatible)",

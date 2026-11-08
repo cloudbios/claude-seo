@@ -1,0 +1,122 @@
+name: Codex distribution
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  codex:
+    name: Offline suite and Codex package (Python ${{ matrix.python-version }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.14"]
+    defaults:
+      run:
+        shell: bash
+    env:
+      # test_sync_flow.py gates its three live GitHub checks with this flag.
+      # The remaining suite uses fixtures and mocked provider/browser calls.
+      CLAUDE_SEO_NETWORK_TESTS: "0"
+      PYTHONDONTWRITEBYTECODE: "1"
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0
+        with:
+          python-version: ${{ matrix.python-version }}
+          cache: pip
+          cache-dependency-path: requirements.txt
+
+      - name: Install runtime and test dependencies
+        run: python -m pip install -r requirements.txt pytest ruff==0.17.1
+
+      - name: Lint Codex integration correctness
+        # The existing CI workflow retains the repository-wide style gate.
+        run: |
+          python -m ruff check --select E9,F63,F7,F82 \
+            scripts/codex_*.py scripts/build_codex_skills.py \
+            scripts/install_codex.py scripts/package_codex.py \
+            tests/test_codex_*.py
+          bash -n scripts/codex-seo
+
+      - name: Run the complete offline test suite
+        run: python -m pytest tests/ -v
+
+      - name: Check deterministic native skills and agents
+        run: python scripts/build_codex_skills.py --check
+
+      - name: Build and install the distribution in a temporary project
+        run: |
+          python scripts/package_codex.py --output "$RUNNER_TEMP/seo-codex-package"
+          mkdir -p "$RUNNER_TEMP/seo-codex-project/.codex"
+          mkdir -p "$RUNNER_TEMP/seo-codex-project/.agents/skills/unrelated"
+          printf 'model = "preserved-model"\n' > "$RUNNER_TEMP/seo-codex-project/.codex/config.toml"
+          printf 'User-owned skill\n' > "$RUNNER_TEMP/seo-codex-project/.agents/skills/unrelated/SKILL.md"
+          python scripts/install_codex.py install \
+            --package "$RUNNER_TEMP/seo-codex-package" \
+            --project "$RUNNER_TEMP/seo-codex-project"
+
+      - name: Check installed discovery and the unprepared runtime
+        run: |
+          set +e
+          "$RUNNER_TEMP/seo-codex-project/.codex/seo-codex/package/scripts/codex-seo" \
+            --state-root "$RUNNER_TEMP/seo-codex-project/.codex/seo-codex/data" \
+            doctor --json > "$RUNNER_TEMP/seo-codex-doctor.json"
+          doctor_status=$?
+          set -e
+          # This smoke check intentionally leaves the managed environment absent.
+          test "$doctor_status" -eq 3
+          python - <<'PY'
+          import json
+          import os
+          import tomllib
+          from pathlib import Path
+
+          temporary = Path(os.environ["RUNNER_TEMP"])
+          project = temporary / "seo-codex-project"
+          doctor = json.loads((temporary / "seo-codex-doctor.json").read_text())
+          assert doctor["host"] == "codex" and doctor["mode"] == "full"
+          assert doctor["ready"] is False
+          assert any("Managed environment is missing" in reason for reason in doctor["reasons"])
+          assert not (project / ".codex/seo-codex/data").exists()
+          config = tomllib.loads((project / ".codex/config.toml").read_text())
+          assert config["model"] == "preserved-model"
+          assert config["agents"]
+          for name, registration in config["agents"].items():
+              agent_file = Path(registration["config_file"])
+              assert agent_file.is_absolute() and agent_file.is_file(), name
+              assert tomllib.loads(agent_file.read_text())["name"] == name
+          skills = list((project / ".agents/skills").glob("seo-codex*/SKILL.md"))
+          assert skills
+          for resource in (project / ".agents/skills").rglob("*"):
+              if resource.is_file() and resource.suffix in {".md", ".toml", ".json", ".txt"}:
+                  assert "__CODEX_SEO_" not in resource.read_text(), resource
+          PY
+
+      - name: Uninstall and verify unrelated files remain
+        run: |
+          python scripts/install_codex.py uninstall --project "$RUNNER_TEMP/seo-codex-project"
+          python - <<'PY'
+          import os
+          import tomllib
+          from pathlib import Path
+
+          project = Path(os.environ["RUNNER_TEMP"]) / "seo-codex-project"
+          assert not (project / ".codex/seo-codex/install-manifest.json").exists()
+          assert not list((project / ".agents/skills").glob("seo-codex*/SKILL.md"))
+          assert not list((project / ".codex/agents").glob("seo-full-*.toml"))
+          assert (project / ".agents/skills/unrelated/SKILL.md").read_text() == "User-owned skill\n"
+          assert tomllib.loads((project / ".codex/config.toml").read_text()) == {"model": "preserved-model"}
+          assert list((project / ".codex/seo-codex/backups").glob("*.json"))
+          PY

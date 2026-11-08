@@ -19,7 +19,15 @@ import sys
 import tempfile
 from pathlib import Path
 
-SETTINGS_PATH = Path.home() / ".claude.json"
+# The explicit bundled root also supports direct extension invocation.
+try:
+    from codex_paths import codex_active, config_path, require_write
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    from codex_paths import codex_active, config_path, require_write
+
+
+SETTINGS_PATH = config_path("banana-mcp.json", Path.home() / ".claude.json")
 MCP_NAME = "nanobanana-mcp"
 MCP_PACKAGE = "@ycse/nanobanana-mcp@1.1.1"
 
@@ -41,6 +49,7 @@ def save_settings(settings: dict) -> None:
     reader ever observing a truncated or partially written file, and avoids
     corrupting the file if this process is interrupted mid-write.
     """
+    require_write()
     SETTINGS_PATH.parent.mkdir(parents=True, exist_ok=True)
     fd, tmp_path = tempfile.mkstemp(
         prefix=".claude.json.", suffix=".tmp", dir=str(SETTINGS_PATH.parent)
@@ -65,7 +74,7 @@ def check_setup() -> bool:
     if MCP_NAME in servers:
         env = servers[MCP_NAME].get("env", {})
         key = env.get("GOOGLE_AI_API_KEY", "")
-        masked = "..." + key[-4:] if len(key) > 12 else "(not set)"
+        masked = ("configured" if key else "(not set)") if codex_active() else ("..." + key[-4:] if len(key) > 12 else "(not set)")
         print(f"MCP server '{MCP_NAME}' is configured.")
         print(f"  Package: {MCP_PACKAGE}")
         print(f"  API Key: {masked}")
@@ -113,8 +122,11 @@ def setup_mcp(api_key: str) -> None:
     print(f"\nMCP server '{MCP_NAME}' configured successfully!")
     print(f"  Package: {MCP_PACKAGE}")
     print("  Model:   MCP package default")
-    print("\nRestart Claude Code for changes to take effect.")
-    print("Generated images will be saved to: ~/Documents/nanobanana_generated/")
+    if codex_active():
+        print("MCP configuration blueprint saved in the explicit config directory; add it through Codex MCP settings.")
+    else:
+        print("\nRestart Claude Code for changes to take effect.")
+        print("Generated images will be saved to: ~/Documents/nanobanana_generated/")
 
 
 def main() -> None:

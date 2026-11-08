@@ -64,6 +64,7 @@ branding/*.png
 
 # Temporary analysis files
 *-AUDIT-REPORT.md
+!adapters/codex/full/skills/seo-codex-google/assets/templates/cwv-audit-report.md
 *-ACTION-PLAN.md
 FULL-AUDIT-REPORT.md
 ACTION-PLAN.md
@@ -138,6 +139,7 @@ indexnow-submit.sh
 # Generated cluster maps
 cluster-map.html
 !skills/seo-cluster/templates/cluster-map.html
+!adapters/codex/full/skills/seo-codex-cluster/templates/cluster-map.html
 CLUSTER-REPORT*.md
 
 # Generated SXO reports

@@ -27,8 +27,10 @@ import sys
 import time
 from typing import Optional
 
-CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/google-api.json")
-TOKEN_PATH = os.path.expanduser("~/.config/claude-seo/oauth-token.json")
+from codex_paths import codex_active, config_path, credential_path
+
+CONFIG_PATH = str(config_path("google-api.json", "~/.config/claude-seo/google-api.json"))
+TOKEN_PATH = str(config_path("oauth-token.json", "~/.config/claude-seo/oauth-token.json"))
 
 # Service-to-scope mapping
 SCOPES = {
@@ -140,6 +142,10 @@ def load_config() -> dict:
     if not config["default_property"]:
         config["default_property"] = os.environ.get("GSC_PROPERTY")
 
+    if codex_active():
+        for key in ("service_account_path", "oauth_client_path"):
+            if config.get(key):
+                config[key] = credential_path(config[key])
     return config
 
 
@@ -169,7 +175,7 @@ def get_service_account_credentials(scopes: list):
     if not sa_path:
         return None
 
-    sa_path = os.path.expanduser(sa_path)
+    sa_path = credential_path(sa_path)
     if not os.path.exists(sa_path):
         print(
             f"Error: Service account file not found: {sa_path}",
@@ -189,6 +195,8 @@ def get_service_account_credentials(scopes: list):
 
 def _gcloud_adc_path() -> str:
     """Where `gcloud auth application-default login` writes the user's credentials."""
+    if codex_active():
+        return str(config_path("application_default_credentials.json"))
     config_dir = os.environ.get("CLOUDSDK_CONFIG")
     if not config_dir:
         if sys.platform == "win32" and os.environ.get("APPDATA"):
@@ -240,6 +248,8 @@ def get_gcloud_credentials(scopes: list):
 
 def _load_oauth_client(creds_path: str) -> Optional[dict]:
     """Load OAuth client credentials from a client_secret JSON file."""
+    if codex_active():
+        creds_path = credential_path(creds_path)
     try:
         with open(creds_path, "r") as f:
             data = json.load(f)
@@ -417,7 +427,7 @@ def _persist_oauth_client_path(creds_path: str):
     Closes the bug where every OAuth user 401'd within 1 hour because the
     refresh path could not find oauth_client_path in config.
     """
-    abs_path = os.path.abspath(os.path.expanduser(creds_path))
+    abs_path = os.path.abspath(credential_path(creds_path))
     os.makedirs(os.path.dirname(CONFIG_PATH), exist_ok=True)
     config = {}
     if os.path.exists(CONFIG_PATH):
@@ -497,7 +507,7 @@ def get_oauth_credentials(scopes: list):
         if time.time() > token_data.get("expires_at", 0) - 60:
             oauth_creds_path = config.get("oauth_client_path")
             if oauth_creds_path:
-                client = _load_oauth_client(os.path.expanduser(oauth_creds_path))
+                client = _load_oauth_client(credential_path(oauth_creds_path))
                 if client:
                     token_data = _refresh_oauth_token(client, token_data)
                     if not token_data:
@@ -511,7 +521,7 @@ def get_oauth_credentials(scopes: list):
                 client_secret = None
                 oauth_path = config.get("oauth_client_path")
                 if oauth_path:
-                    client_data = _load_oauth_client(os.path.expanduser(oauth_path))
+                    client_data = _load_oauth_client(credential_path(oauth_path))
                     if client_data:
                         client_secret = client_data.get("client_secret")
                 return Credentials(
@@ -847,7 +857,7 @@ def check_credentials(service: str) -> dict:
                     f"         2. Or add 'service_account_path' to {CONFIG_PATH}"
                 )
             else:
-                sa_path = os.path.expanduser(sa_path)
+                sa_path = credential_path(sa_path)
                 if not os.path.exists(sa_path):
                     result["error"] = f"Service account file not found: {sa_path}"
                 else:
@@ -903,7 +913,7 @@ def detect_tier() -> dict:
     if not has_authenticated:
         sa_path = config.get("service_account_path")
         if sa_path:
-            sa_path = os.path.expanduser(sa_path)
+            sa_path = credential_path(sa_path)
             if os.path.exists(sa_path):
                 try:
                     with open(sa_path, "r") as f:
@@ -960,6 +970,9 @@ def detect_tier() -> dict:
 
 
 def print_setup_instructions():
+    if codex_active():
+        print('Configure config/google-api.json under the explicit Codex state root. Supported fields: api_key, service_account_path, oauth_client_path, default_property, ga4_property_id, ads_developer_token, ads_customer_id, ads_login_customer_id. Credential file references must remain inside config/. OAuth tokens use config/oauth-token.json; explicit ADC uses config/application_default_credentials.json. To authorize OAuth, invoke run --allow-write google_auth.py --auth --creds <config-file>. No credentials are imported from legacy or gcloud home paths.')
+        return
     """Print step-by-step setup instructions."""
     print("""
 Google SEO API Setup Instructions

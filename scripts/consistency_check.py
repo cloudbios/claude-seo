@@ -47,7 +47,26 @@ LOCK_PATH = "skills/seo-flow/references/flow-prompts.lock"
 RUNTIME_UTILITY_COMMANDS = {"setup", "doctor"}
 
 
+def _physical(rel):
+    if rel.startswith("skills/") and os.path.isdir(os.path.join(REPO, "source-skills")):
+        rel = "source-skills/" + rel[len("skills/"):]
+    return os.path.join(REPO, rel)
+
+
 def tracked_files():
+    if os.path.isdir(os.path.join(REPO, "source-skills")):
+        # Prepared distributions have no Git index. Audit the preserved source
+        # methods with their canonical logical names, not native adapter skills.
+        files = []
+        for base, dirs, names in os.walk(REPO):
+            dirs[:] = [d for d in dirs if d not in (".git", ".venv", "__pycache__")
+                       and not (base == REPO and d == "skills")]
+            for name in names:
+                rel = os.path.relpath(os.path.join(base, name), REPO).replace(os.sep, "/")
+                if rel.startswith("source-skills/"):
+                    rel = "skills/" + rel[len("source-skills/"):]
+                files.append(rel)
+        return sorted(files)
     out = subprocess.run(["git", "-C", REPO, "ls-files"],
                          capture_output=True, text=True, check=True).stdout
     return [line for line in out.splitlines() if line.strip()]
@@ -56,7 +75,7 @@ def tracked_files():
 def read(rel, _cache={}):
     if rel not in _cache:
         try:
-            with open(os.path.join(REPO, rel), encoding="utf-8", errors="replace") as fh:
+            with open(_physical(rel), encoding="utf-8", errors="replace") as fh:
                 _cache[rel] = fh.read()
         except OSError:
             _cache[rel] = ""
@@ -78,9 +97,9 @@ def check_references(files, md):
         for m in sorted(set(ref_pat.findall(read(f)))):
             candidates = [os.path.join(base, "references", m),
                           os.path.join("skills/seo/references", m)]
-            if any(os.path.exists(os.path.join(REPO, c)) for c in candidates):
+            if any(os.path.exists(_physical(c)) for c in candidates):
                 continue
-            hits = (glob.glob(os.path.join(REPO, "skills", "*", "references", m))
+            hits = (glob.glob(os.path.join(_physical("skills/"), "*", "references", m))
                     + glob.glob(os.path.join(REPO, "extensions", "*", "skills", "*", "references", m)))
             if hits:
                 infos.append(f"{f}: references/{m} resolves cross-skill to "
@@ -117,7 +136,9 @@ def check_script_refs(files, texts):
     errors = []
     mentioned = set()
     for f in texts:
-        if f.startswith(("research/", ".github/")) or f == "CHANGELOG.md" or f in SELF_DOC:
+        # Tests construct temporary package layouts with deliberately nonexistent
+        # script names. Check shipped docs/code rather than those fixture paths.
+        if f.startswith(("research/", ".github/", "tests/")) or f == "CHANGELOG.md" or f in SELF_DOC:
             continue
         ext_root = extension_root(f)
         for m in sorted(set(pat.findall(read(f)))):
@@ -125,7 +146,7 @@ def check_script_refs(files, texts):
             candidates = [f"scripts/{m}"]
             if ext_root:
                 candidates.insert(0, f"{ext_root}/scripts/{m}")
-            if not any(c in files or os.path.isfile(os.path.join(REPO, c)) for c in candidates):
+            if not any(c in files or os.path.isfile(_physical(c)) for c in candidates):
                 errors.append(f"{f}: dead script ref scripts/{m} "
                               f"(checked: {', '.join(candidates)})")
     orphans = []
@@ -160,7 +181,7 @@ def check_skill_dir_script_refs(files, texts):
             else:
                 errors.append(f"{f}: CLAUDE_SKILL_DIR script used outside a skill layout")
                 continue
-            if candidate not in files and not os.path.isfile(os.path.join(REPO, candidate)):
+            if candidate not in files and not os.path.isfile(_physical(candidate)):
                 errors.append(
                     f"{f}: dead skill-root script {script} (checked: {candidate})"
                 )
@@ -271,7 +292,7 @@ def check_flow_lock(files):
         if len(parts) == 2:
             locked[parts[1]] = parts[0]
     for rel, want in locked.items():
-        full = os.path.join(REPO, rel)
+        full = _physical(rel)
         if not os.path.exists(full):
             errors.append(f"flow lock: missing {rel}")
             continue

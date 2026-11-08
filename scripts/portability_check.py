@@ -56,7 +56,7 @@ _FRONTMATTER_RE = re.compile(r"^---\n(.*?)\n---", re.DOTALL)
 def _find_skill_files() -> list[Path]:
     """Every SKILL.md under skills/ and extensions/."""
     paths: list[Path] = []
-    for root in ("skills", "extensions"):
+    for root in ("skills", "source-skills", "extensions"):
         base = REPO_ROOT / root
         if not base.is_dir():
             continue

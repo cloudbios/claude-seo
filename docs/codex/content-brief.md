@@ -85,7 +85,7 @@ the brief's commands, nine-section result and output names are unchanged.
 The core sampled audit retains six roles. Standalone optional workflows
 each contribute five files and one role. GEO adds four files and one role,
 and the planning helper is copied once when needed.
-Enabling all eight optional workflows copies 68 files with fourteen roles;
+Enabling all nine optional workflows copies 73 files with fifteen roles;
 brief and strategy together copy 39 files. The default pilot remains eight files.
 
 Use the supplied prepared runtime and absolute dedicated state root:

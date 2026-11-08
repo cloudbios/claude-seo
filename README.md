@@ -4,12 +4,12 @@
   26 sub-skills and 19 specialist agents. MIT licensed.
 -->
 
-> **Codex adaptation in this fork:** the one-page pilot and runtime foundation
-> are verified. An optional adapter supports sampled technical, schema, content
-> and image-markup reviews of 1–5 explicit pages. See [Codex adapter](adapters/codex/README.md),
-> [core orchestration](docs/codex/core-orchestration.md) and
-> [content/image validation](docs/codex/content-images.md) for the tested scope.
-> The upstream installation instructions below still describe Claude Code.
+> **Codex support in this fork** includes a generated full distribution with
+> 35 skills, 34 native specialist profiles, and all 9 extension resource trees.
+> Start with the [Codex installation guide](docs/codex/INSTALL.md) and
+> [full-port coverage and validation guide](docs/codex/FULL-PORT.md).
+> Final combined validation and approval are pending. Provider-backed results
+> require configured access. The original Claude Code workflows remain below.
 
 <img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />
 
@@ -21,7 +21,8 @@
 </p>
 
 <p align="center">
-  <a href="#install">Install</a> ·
+  <a href="#codex">Install for Codex</a> ·
+  <a href="#claude-code">Install for Claude Code</a> ·
   <a href="#see-it-in-action">Demo</a> ·
   <a href="#real-results">Results</a> ·
   <a href="#meet-the-team">Team</a> ·
@@ -54,7 +55,7 @@ It checks everything a good SEO consultant would:
 - **AI search (GEO).** How likely Google AI Overviews, AI Mode, ChatGPT, Perplexity and Gemini are to cite your pages.
 - **Local and e-commerce SEO.** Google Business Profile, reviews, map pack, product pages and international sites.
 
-Claude SEO is built from 26 sub-skills and 19 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked.
+The upstream Claude Code edition is built from 26 sub-skills and 19 specialist agents, and up to 17 agents work on your site at the same time. Every recommendation explains why it matters and how you will know it worked. This fork also provides a project-scoped Codex distribution with adapted runtime commands, native agent profiles, and explicit provider configuration.
 
 ## See it in action
 
@@ -198,6 +199,31 @@ but absent from the schema. This content-schema mismatch can confuse search engi
 Want the details? Read the [methodology](skills/seo/references/thinking-framework.md) and the [architecture](docs/ARCHITECTURE.md).
 
 ## Install
+
+### Codex
+
+Use Python 3.11–3.14 to build and install the full distribution into a chosen
+project. Choose a new absolute directory for the package output.
+
+```bash
+python3 scripts/build_codex_skills.py
+python3 scripts/package_codex.py --output /absolute/path/seo-codex-package
+python3 scripts/install_codex.py install \
+  --package /absolute/path/seo-codex-package \
+  --project /absolute/path/your-project
+```
+
+Follow the installation guide to run explicit runtime setup and diagnostics,
+then start a new Codex session in that project and invoke `$seo-codex` or a
+specific route such as `$seo-codex-audit https://example.com`. The full-site
+coordinator accepts a 1–500 page cap, defaults to 100 pages, and discovers
+same-origin HTML links while recording robots exclusions and coverage limits.
+Native specialist concurrency is one or two workers per audit. The package
+preserves the upstream methodology, shared resources, and FLOW attribution.
+[Install, upgrade, and uninstall](docs/codex/INSTALL.md) ·
+[Coverage, provider requirements, and validation](docs/codex/FULL-PORT.md)
+
+### Claude Code
 
 <img src="assets/readme/v3/install.svg" width="1200" height="420" alt="Installing Claude SEO: add the marketplace, install the plugin, 26 skills and 19 agents arrive, /seo setup readies the browser, then /seo audit starts the first level." />
 

@@ -64,6 +64,7 @@ from typing import Any
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
+from codex_paths import codex_active  # noqa: E402
 from url_safety import URLSafetyError, validate_url_strict  # noqa: E402
 
 UNLIGHTHOUSE_PIN = "unlighthouse@0.13.5"
@@ -110,8 +111,12 @@ def build_cmd(target: str, *, device: str, out_dir: Path, config_path: Path) -> 
     """Build the unlighthouse-ci argv. Every flag here is documented in
     ``packages/cli/src/createCli.ts`` and ``packages/cli/src/ci.ts`` upstream.
     """
+    npm_flags = ["--yes"]
+    if codex_active() and os.environ.get("CODEX_SEO_ALLOW_INSTALL") != "1":
+        # Cached package extraction must not run lifecycle download hooks.
+        npm_flags.extend(["--offline", "--ignore-scripts"])
     return [
-        "npx", "--yes", "--package", UNLIGHTHOUSE_PIN, "unlighthouse-ci",
+        "npx", *npm_flags, "--package", UNLIGHTHOUSE_PIN, "unlighthouse-ci",
         "--site", target,
         "--desktop" if device == "desktop" else "--mobile",
         "--output-path", str(out_dir),
@@ -235,7 +240,7 @@ def run(
                     "output_dir": str(out_dir)}
         normalized = normalize_ci_result(raw_summary)
 
-    return {
+    result = {
         "ok": proc.returncode == 0,
         "exit_code": proc.returncode,
         "target": target,
@@ -247,6 +252,13 @@ def run(
         "stdout_tail": proc.stdout[-2000:] if proc.stdout else "",
         "stderr_tail": proc.stderr[-2000:] if proc.stderr else "",
     }
+    if proc.returncode and "--offline" in cmd:
+        result["error"] = (
+            "Unlighthouse failed with offline dependencies. If the required package "
+            "is missing from the explicit npm cache, rerun with "
+            "run --allow-install unlighthouse_run.py to authorize dependency downloads."
+        )
+    return result
 
 
 def main() -> int:

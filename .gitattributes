@@ -1,0 +1,8 @@
+# Keep source and generated provenance hashes stable across checkout platforms.
+* text=auto eol=lf
+*.png -text
+*.jpg -text
+*.jpeg -text
+*.webp -text
+*.gif -text
+*.pdf -text

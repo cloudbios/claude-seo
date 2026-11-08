@@ -7,6 +7,36 @@
 >
 > Claude Code users: see `CLAUDE.md` instead.
 
+## Codex full distribution
+
+Use the generated Codex distribution for this host. Build and install it with
+the [Codex installation guide](docs/codex/INSTALL.md), then load the installed
+`$seo-codex` entrypoint or the matching `$seo-codex-<route>` skill. The generated
+set contains 35 skills, 34 native `seo-full-*` profiles, and all 9 extension
+resource trees. Full-port coverage and final validation status are recorded in
+[FULL-PORT.md](docs/codex/FULL-PORT.md).
+
+Run helpers through the installed `scripts/codex-seo` launcher with an explicit
+absolute `--state-root`. Native `SKILL.md` contracts govern runtime commands,
+provider discovery, authorization, and audit result formats. Full audit jobs
+use `scripts/codex_full_audit.py`, a 1–500 page cap, same-origin HTML-link
+discovery, and one or two concurrent specialists. Report robots exclusions,
+uncaptured URLs, rendering gaps, and unavailable provider evidence.
+
+The package keeps original skill resources in `source-skills/` for helpers
+that need them. Discoverable native skills live in its `skills/` tree and are
+installed under `.agents/skills/`. Generate them with
+`python3 scripts/build_codex_skills.py` and verify reproducibility with `--check`.
+Keep upstream `skills/` and `agents/` available for the other hosts.
+
+Discover tools from the active Codex session's descriptions and schemas.
+Select native `spawn_agent` profiles when available, or execute the assigned
+methodology inline and record that mode. Skills and agent profiles inherit the
+session's permissions and provider access. Keep secrets in the explicit state
+root's `config/` directory or use supported provider environment inputs.
+Credential migration, paid calls, installation, and external mutations each
+require the user's applicable authorization.
+
 ## Cross-platform portability (v2.0.0)
 
 Every skill in `skills/*/SKILL.md` is authored to a portable subset of the
@@ -30,35 +60,38 @@ descriptive comments) that other harnesses may ignore but do not reject.
 | **Google Antigravity** | Point the workspace at this repo root; Antigravity reads `AGENTS.md` first, falls back to `skills/`. |
 | **Gemini CLI** | `gemini init` in this repo loads `AGENTS.md`. Skills are activated via `activate_skill <name>` in conversation. |
 | **Grok Build** | Open this repository in Grok Build. It reads `AGENTS.md` and Claude Code compatible plugins and skills without a separate layout. Use `grok inspect` to verify discovery. See the [official compatibility guide](https://docs.x.ai/build/features/skills-plugins-marketplaces). |
-| **OpenAI Codex CLI** | Reads `AGENTS.md` from project root. Bash tools work as documented; some Claude-specific tool names (Read/Write/Edit) are aliased to Codex equivalents transparently. |
+| **OpenAI Codex CLI** | Reads project instructions and uses the generated native distribution. Follow `docs/codex/INSTALL.md`, then invoke `$seo-codex` or a route skill and discover available tools from the active session. |
 | **Cline** | Loads `AGENTS.md` from project root. Skills appear as system messages; subagent delegation falls back to in-context expansion. |
 | **Aider** | Reads `AGENTS.md` if present; otherwise falls back to README. Aider does not support sub-agent dispatch; the seo-* skills run inline. |
 
 ### Tool-name compatibility
 
-Where claude-seo skills mention Claude Code tools (`Read`, `Write`, `Edit`,
-`Bash`, `Glob`, `Grep`, `WebFetch`), each harness typically has an equivalent:
+Upstream tool names express required capabilities. Resolve file reads, edits,
+shell commands, searches, web fetching, and agent dispatch against the current
+harness's actual tool descriptions and argument schemas. Availability and
+spelling vary by host and session. The Codex adapter translates runtime and
+skill references and supplies native agent profiles. A provider's presence
+must be established before using its examples as executable instructions.
 
-| Claude Code | Codex | Cline | Aider | Cursor / Antigravity |
-|---|---|---|---|---|
-| Read       | read_file        | read_file       | (inline)        | read |
-| Write      | write_file       | write_file      | /add then edit  | write |
-| Edit       | apply_diff       | replace_in_file | /edit           | edit |
-| Bash       | bash             | execute_command | /run            | shell |
-| Glob       | glob             | search_files    | (inline)        | find |
-| Grep       | grep             | search_files    | /grep           | grep |
-| WebFetch   | fetch / browse   | (browser tool)  | (n/a)           | fetch |
-
-These mappings are automatic in most harnesses; we list them for transparency
-in case a recipe needs a specific call.
+For example, Claude's `Read`, `Write`, `Edit`, `Bash`, and `WebFetch` names
+describe file reading, file writing, editing, shell execution, and fetching.
+Codex, Cline, and Aider users must choose their session's actual equivalents;
+these names are not automatic tool aliases.
 
 ## Overview
 
 Claude SEO is a Tier 4 SEO analysis skill with 26 sub-skills (22 core + 1 orchestrator +
 1 framework integration + 2 extension mirrors), 19 sub-agents (16 core + 1 framework
-integration + 2 extension mirrors), and 72 Python execution scripts.
+integration + 2 extension mirrors), and 79 Python execution scripts.
 
-## Quick Reference
+Those counts describe the upstream edition. The full Codex edition has 35
+generated skills and 34 native profiles. The earlier bounded pilot remains in
+`adapters/codex/skills/` for its documented saved-capture workflows.
+
+## Upstream Quick Reference
+
+For Codex, use `$seo-codex-<route>` for the corresponding workflow in this table.
+Runtime setup and diagnostics use `$seo-codex setup` and `$seo-codex doctor`.
 
 | Command | What it does |
 |---------|-------------|
@@ -167,17 +200,20 @@ skills/                    # 26 sub-skills (auto-discovered)
   seo-dataforseo/         # DataForSEO (extension)
   seo-image-gen/          # AI images (extension)
 agents/                    # 19 subagents
-scripts/                   # 72 Python scripts, including runtime and Codex adapter tools
+scripts/                   # 79 Python scripts, including runtime and Codex adapter tools
 schema/                    # JSON-LD templates
 extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse
+adapters/codex/full/        # Generated Codex skills, native profiles, resources, provenance
+scripts/codex_runtime.py   # Explicit-state Codex helper dispatch and setup
+scripts/codex_full_audit.py # Full-site crawl and specialist coordination
 ```
 
 ## Key Principles
 
 1. **Progressive Disclosure**: Read SKILL.md for routing, load references on demand
 2. **Industry Detection**: Auto-detect SaaS, e-commerce, local, publisher, agency
-3. **Security**: All scripts call `validate_url()` for SSRF protection
-4. **Config location**: `~/.config/claude-seo/` for API credentials
+3. **Security**. Use the bundled URL-validation and fetching helpers for external URLs
+4. **Config location**. Upstream uses `~/.config/claude-seo/`. Codex uses `config/` under its explicit state root
 
 ## Credits
 

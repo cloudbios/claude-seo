@@ -387,12 +387,12 @@ def render(manifest: dict, requirements: dict, role: dict | None) -> dict[str, b
     strategy += ["", "## Assessment and reasoning", ""]
     strategy.extend("- " + row["id"] + " [" + row["basis"] + ("; sources: " + ", ".join(row["sources"]) if row["sources"] else "") + "]: " + esc(row["text"]) for row in collections["notes"])
     road = ["All actions, owner roles and week windows below are proposals.", ""]
-    road.extend("- " + row["id"] + " — " + esc(row["action"]) + "; " + row["priority"] + "; weeks " +
+    road.extend("- " + row["id"] + ": " + esc(row["action"]) + "; " + row["priority"] + "; weeks " +
                 str(row["start_week"]) + "–" + str(row["end_week"]) + "; owner: " + esc(row["owner"]) +
                 "; depends on: " + (", ".join(row["depends_on"]) or "none") + "; complete when: " + esc(row["done_when"]) + refs(row)
                 for row in collections["roadmap"])
     calendar = ["Proposed production windows require confirmation against actual capacity.", ""]
-    calendar.extend("- " + row["id"] + " — " + esc(row["topic"]) + "; purpose: " + esc(row["purpose"]) +
+    calendar.extend("- " + row["id"] + ": " + esc(row["topic"]) + "; purpose: " + esc(row["purpose"]) +
                     "; format: " + esc(row["format"]) + "; weeks " + str(row["start_week"]) + "–" + str(row["end_week"]) +
                     "; owner: " + esc(row["owner"]) + "; roadmap: " + row["roadmap_id"] +
                     "; evidence needed: " + ("; ".join(esc(item) for item in row["evidence_needed"]) or "none specified") + refs(row)
@@ -402,7 +402,7 @@ def render(manifest: dict, requirements: dict, role: dict | None) -> dict[str, b
                      "; proposed parent: " + (row["parent_id"] or "none") + "; proposed links to: " + (", ".join(row["links_to"]) or "none") +
                      "; sources: " + (", ".join(row["sources"]) or "none") + refs(row) for row in collections["site_structure"])
     measurement = ["No measured baselines were supplied through this workflow. Collection and targets below are proposals, not enabled integrations or forecasts.", ""]
-    measurement.extend("- " + row["id"] + " — " + esc(row["question"]) + "; metric: " + esc(row["metric"]) +
+    measurement.extend("- " + row["id"] + ": " + esc(row["question"]) + "; metric: " + esc(row["metric"]) +
                        "; scope: " + esc(row["scope"]) + "; proposed collection: " + esc(row["collection_source"]) +
                        "; owner: " + esc(row["owner"]) + "; cadence: " + esc(row["cadence"]) +
                        "; baseline: unavailable; target [" + row["target"]["status"] + "]: " +

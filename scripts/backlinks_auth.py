@@ -21,6 +21,8 @@ import subprocess
 import sys
 from typing import Optional
 
+from codex_paths import cache_path, codex_active, config_path
+
 # Import SSRF protection from the canonical url_safety module.
 # google_auth.validate_url is a back-compat wrapper around the same function.
 _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -49,8 +51,8 @@ except ImportError as _import_exc:
         "Install with: pip install -r requirements.txt"
     ) from _import_exc
 
-CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/backlinks-api.json")
-CACHE_DIR = os.path.expanduser("~/.cache/claude-seo/commoncrawl")
+CONFIG_PATH = str(config_path("backlinks-api.json", "~/.config/claude-seo/backlinks-api.json"))
+CACHE_DIR = str(cache_path("commoncrawl", "~/.cache/claude-seo/commoncrawl"))
 
 # Which services need which auth type
 SERVICE_AUTH = {
@@ -195,7 +197,7 @@ def load_config() -> dict:
         config["keywordseverywhere_api_key"] = os.environ.get("KEYWORDSEVERYWHERE_API_KEY")
 
     # Expand cache dir path
-    config["commoncrawl_cache_dir"] = os.path.expanduser(
+    config["commoncrawl_cache_dir"] = CACHE_DIR if codex_active() else os.path.expanduser(
         config.get("commoncrawl_cache_dir", CACHE_DIR)
     )
 
@@ -414,6 +416,9 @@ def get_cache_dir() -> str:
 
 
 def print_setup_instructions():
+    if codex_active():
+        print('Configure config/backlinks-api.json under the explicit Codex state root with moz_api_key, bing_api_key, bing_verified_sites, or keywordseverywhere_api_key. Corresponding explicit environment keys are also supported. Common Crawl cache is always state/cache/commoncrawl. No legacy credentials are imported.')
+        return
     """Print step-by-step setup instructions for all backlink APIs."""
     print("""
 Backlink API Setup Instructions

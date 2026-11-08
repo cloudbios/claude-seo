@@ -194,6 +194,32 @@ def test_programmatic_route_requires_complete_payload_without_fetching(tmp_path,
         assert "programmatic" not in audit.SUPPORTED_ROLES
 
 
+def test_comparison_route_requires_complete_payload_without_fetching(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("competitor-pages")["status"] == "unavailable"
+        paths = ("scripts/codex_comparison.py", "scripts/codex_planning.py",
+                 ".codex/agents/seo-codex-competitor-pages.toml",
+                 ".agents/skills/seo-codex-competitor-pages/SKILL.md",
+                 ".agents/skills/seo-codex-competitor-pages/references/review.md",
+                 ".agents/skills/seo-codex-competitor-pages/LICENSE.txt")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("competitor-pages") == {
+            "status": "available", "workflow": "competitor-pages", "skill": "seo-codex-competitor-pages",
+            "focus": "two-subject-comparison-brief"
+        }
+        for path in paths:
+            target = tmp_path / path
+            target.unlink()
+            assert audit.route("competitor-pages")["status"] == "unavailable"
+            target.write_text("staged fixture")
+        assert "comparison" not in audit.SUPPORTED_ROLES
+
+
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):

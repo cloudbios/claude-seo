@@ -18,9 +18,17 @@ import shutil
 import sys
 from pathlib import Path
 
-SETTINGS_PATH = Path.home() / ".claude.json"
+# The explicit bundled root also supports direct extension invocation.
+try:
+    from codex_paths import cache_path, codex_active, config_path
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    from codex_paths import cache_path, codex_active, config_path
+
+
+SETTINGS_PATH = config_path("banana-mcp.json", Path.home() / ".claude.json")
 MCP_NAME = "nanobanana-mcp"
-OUTPUT_DIR = Path.home() / "Documents" / "nanobanana_generated"
+OUTPUT_DIR = cache_path("banana/generated", Path.home() / "Documents" / "nanobanana_generated")
 
 
 def check(label: str, passed: bool, detail: str = "") -> bool:
@@ -96,7 +104,7 @@ def main() -> int:
         results.append(check(
             "GOOGLE_AI_API_KEY is set",
             bool(key),
-            f"...{key[-4:]}" if len(key) > 12 else "(empty or short)",
+            ("configured" if key else "(not set)") if codex_active() else (f"...{key[-4:]}" if len(key) > 12 else "(empty or short)"),
         ))
 
         # 7. Model configured
@@ -114,6 +122,11 @@ def main() -> int:
         has_npx,
         shutil.which("npx") or "not found",
     ))
+
+    # Read-only validation in Codex: no directory creation is needed.
+    if codex_active():
+        results.append(check("Output location uses explicit Codex cache", True))
+        return 0 if all(results) else 1
 
     # 9. Output directory
     if OUTPUT_DIR.exists():

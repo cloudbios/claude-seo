@@ -32,7 +32,7 @@ The accepted foundation permitted only `codex_pilot.py`. The subsequent
 [core orchestration](core-orchestration.md) adds `codex_audit.py` to that explicit
 allowlist; the default pilot-only stage does not include the coordinator.
 The optional visual, sitemap, saved-Lighthouse, content-brief, strategy and
-source-drift and programmatic adapters add their own seven bounded workflows;
+source-drift, programmatic and comparison adapters add their own eight bounded workflows;
 dispatch still requires each file in the active stage.
 The optional GEO reviewer reuses `codex_audit.py` and its existing runtime
 entry point. Its staged resources and provenance are checked before a new
