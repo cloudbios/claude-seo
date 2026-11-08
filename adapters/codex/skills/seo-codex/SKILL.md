@@ -1,13 +1,14 @@
 ---
 name: seo-codex
-description: Route SEO requests within the staged Codex core adapter to a one-page technical/schema review, a sampled audit of up to five explicit pages, or prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter; specific sampled audits use seo-codex-audit.
+description: Route staged Codex SEO requests to the technical/schema page pilot, qualitative content or image-markup reviews, sampled audits of up to five explicit pages, or prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
 
-This adapter supports technical and structured-data evidence from explicit
-pages. It does not register a `/seo` slash command or replace installed SEO
-skills. Use staged resources only; never fall back to a global `seo-*` skill.
+This adapter supports technical, structured-data, qualitative content and
+image-markup evidence from explicit pages. It does not register a `/seo` slash
+command or replace installed SEO skills. Use staged resources only; never fall
+back to a global `seo-*` skill.
 
 Resolve resources from the staged project root. Use the caller's prepared
 Python and explicit absolute, dedicated state root. Do not infer either from
@@ -25,7 +26,9 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `page` | Read `../seo-codex-pilot/SKILL.md`; retain both native roles and its capture/check contract. |
 | `technical` | The same page pilot, emphasizing the user's technical question in the role briefs and final response. |
 | `schema` | The same page pilot, emphasizing the user's structured-data question. |
-| `audit` | Read `../seo-codex-audit/SKILL.md`; this is a sampled audit of 1–5 explicit pages. |
+| `content` | Read `../seo-codex-content/SKILL.md`; qualitative source-HTML review of 1–5 explicit pages using only the content role. |
+| `images` | Read `../seo-codex-images/SKILL.md`; image-markup review of 1–5 explicit pages using only the images role. |
+| `audit` | Read `../seo-codex-audit/SKILL.md`; sampled audit of 1–5 explicit pages, selecting all four roles unless the user requests narrower coverage. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
 
 Use `page` for one-page requests and `audit` for an explicit page sample or
@@ -46,7 +49,7 @@ unavailable result. Explain the stated limitation and offer only a supported
 workflow that addresses the user's intent. Do not invoke a nearby capability
 without telling the user how its coverage differs.
 
-This includes unported `content`, `content-brief`, `images`, `sitemap`, `geo`,
+This includes unported `content-brief`, `sitemap`, `geo`,
 `agentic`, `plan`, `programmatic`, `competitor-pages`, `local`, `maps`,
 `hreflang`, `google`, `backlinks`, `cluster`, `sxo`, `drift`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence

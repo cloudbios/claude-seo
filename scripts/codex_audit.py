@@ -26,6 +26,7 @@ MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_INPUT_BYTES = 64 * 1024
 MANIFEST = "audit-manifest.json"
 ROLES = ("technical", "schema")
+SUPPORTED_ROLES = (*ROLES, "content", "images")
 
 
 class AuditError(ValueError):
@@ -37,6 +38,8 @@ def route(workflow: str) -> dict:
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-pilot", "focus": workflow}
     if workflow == "audit":
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-audit", "focus": "explicit-page-sample"}
+    if workflow in ("content", "images"):
+        return {"status": "available", "workflow": workflow, "skill": "seo-codex-" + workflow, "focus": workflow}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}
@@ -70,7 +73,24 @@ def _url(value: str) -> str:
     return urlunsplit((parts.scheme.lower(), host, parts.path or "/", parts.query, ""))
 
 
-def _new_plan(entries: object, source_file: Path, max_workers: int) -> dict:
+def _selected_roles(value: object) -> list[str]:
+    if (not isinstance(value, list) or not value or
+            any(not isinstance(role, str) or role not in SUPPORTED_ROLES for role in value) or
+            len(set(value)) != len(value)):
+        raise AuditError("Roles must be a nonempty list of unique supported roles")
+    return [role for role in SUPPORTED_ROLES if role in value]
+
+
+def _plan_roles(specification: dict) -> list[str]:
+    # Plans created before role selection retain the original two specialists.
+    roles = specification.get("roles", list(ROLES))
+    selected = _selected_roles(roles)
+    if selected != roles:
+        raise AuditError("Planned roles must use canonical supported order")
+    return selected
+
+
+def _new_plan(entries: object, source_file: Path, max_workers: int, roles: list[str]) -> dict:
     if max_workers not in (1, 2):
         raise AuditError("max-workers must be 1 or 2")
     if not isinstance(entries, list) or not 1 <= len(entries) <= MAX_PAGES:
@@ -95,18 +115,19 @@ def _new_plan(entries: object, source_file: Path, max_workers: int) -> dict:
             data = pilot.read_bytes(path)
             fixture = {"path": str(path), "sha256": pilot.digest(data), "bytes": len(data)}
         pages.append({"id": f"p{index:03d}-{pilot.digest(url.encode())[:12]}", "url": url, "fixture": fixture})
-    return {"max_workers": max_workers, "pages": pages, "provenance": pilot.provenance()}
+    return {"max_workers": max_workers, "roles": roles, "pages": pages, "provenance": pilot.provenance()}
 
 
-def plan(urls: Path, output: Path, max_workers: int = 2) -> dict:
+def plan(urls: Path, output: Path, max_workers: int = 2, roles: list[str] | None = None) -> dict:
+    selected = _selected_roles(list(ROLES) if roles is None else roles)
     source = pilot.no_symlinks(urls)
-    specification = _new_plan(_json(source, MAX_INPUT_BYTES), source, max_workers)
+    specification = _new_plan(_json(source, MAX_INPUT_BYTES), source, max_workers, selected)
     root = pilot.no_symlinks(output)
     if root.exists() or not root.parent.is_dir():
         raise AuditError("Output must be a new directory under an existing parent")
     tasks = {f"{page['id']}:{role}": {"page_id": page["id"], "role": role, "active": False,
              "starts": 0, "status": "pending", "completed_sha256": None}
-             for page in specification["pages"] for role in ROLES}
+             for page in specification["pages"] for role in selected}
     ledger = {"schema_version": 1, "created_at": pilot.now(), "plan": specification,
               "plan_sha256": pilot.digest(pilot.encode(specification, compact=True)),
               "captures": {}, "tasks": tasks, "reports": []}
@@ -126,6 +147,7 @@ def _load(output: Path) -> tuple[Path, dict]:
     specification = ledger.get("plan")
     if not isinstance(specification, dict) or pilot.digest(pilot.encode(specification, compact=True)) != ledger.get("plan_sha256"):
         raise AuditError("Audit plan identity mismatch")
+    roles = _plan_roles(specification)
     pages = specification.get("pages")
     if not isinstance(pages, list) or not 1 <= len(pages) <= MAX_PAGES or specification.get("max_workers") not in (1, 2):
         raise AuditError("Invalid audit plan bounds")
@@ -138,7 +160,7 @@ def _load(output: Path) -> tuple[Path, dict]:
         if page.get("id") != expected or page["url"] in seen:
             raise AuditError("Page identity mismatch")
         seen.add(page["url"])
-        expected_tasks.update(f"{expected}:{role}" for role in ROLES)
+        expected_tasks.update(f"{expected}:{role}" for role in roles)
         pilot.no_symlinks(root / "pages" / expected)
     tasks = ledger.get("tasks")
     if not isinstance(tasks, dict) or set(tasks) != expected_tasks:
@@ -238,7 +260,7 @@ def _observe(root: Path, ledger: dict) -> dict:
             actual = _accept_capture(root, page, ledger["plan"]["provenance"])
             if actual != record:
                 raise AuditError("Captured page identity changed")
-        for role in ROLES:
+        for role in _plan_roles(ledger["plan"]):
             task_id = f"{page_id}:{role}"
             task = ledger["tasks"][task_id]
             result = None
@@ -318,7 +340,7 @@ def next_jobs(output: Path, available_slots: int, resume_incomplete: bool = Fals
     capacity = min(available_slots, ledger["plan"]["max_workers"] - active)
     jobs = []
     for page in ledger["plan"]["pages"]:
-        for role in ROLES:
+        for role in _plan_roles(ledger["plan"]):
             task_id = f"{page['id']}:{role}"
             task = ledger["tasks"][task_id]
             record = ledger["captures"].get(task["page_id"])
@@ -365,6 +387,9 @@ def report(output: Path) -> dict:
         summary = _summary(ledger, observations)
         if len(ledger["reports"]) >= 100:
             raise AuditError("Report snapshot limit reached")
+        roles = _plan_roles(ledger["plan"])
+        # Preserve the original two-role excerpt budget as role coverage grows.
+        items_per_field = max(1, 40 // len(roles))
         lines = ["# Explicit page-sample SEO audit", "", f"Review status: {summary['status']}.",
                  f"Active native-process reservations: {summary['active_reservations']}.", "",
                  "This report covers only the listed pages. It is not a full-site audit or a site score.",
@@ -378,7 +403,7 @@ def report(output: Path) -> dict:
             if record and record.get("capture_sha256"):
                 _, manifest = pilot.load_capture(root / "pages" / page["id"])
                 lines.append(f"Representation: {manifest['capture']['representation']}. Automated schema check: {manifest['checks']['schema']}.")
-            for role in ROLES:
+            for role in roles:
                 item = observations[f"{page['id']}:{role}"]
                 lines.extend(["", f"### {role.title()}: {item['status']}", ""])
                 result = item["result"]
@@ -386,11 +411,13 @@ def report(output: Path) -> dict:
                     lines.append("No validated role result is available; coverage remains incomplete.")
                     continue
                 for field in ("findings", "limitations"):
-                    for text in result[field][:20]:
+                    for text in result[field][:items_per_field]:
                         safe = text.replace("\n", " ").replace("<", "&lt;").replace(">", "&gt;")
-                        lines.append(f"- {field}: {safe[:2000]}" + (" [truncated; read role artifact]" if len(safe) > 2000 else ""))
-                    if len(result[field]) > 20:
-                        lines.append(f"- {len(result[field]) - 20} additional {field} retained in the role artifact.")
+                        encoded = safe.encode()
+                        excerpt = encoded[:2000].decode("utf-8", errors="ignore")
+                        lines.append(f"- {field}: {excerpt}" + (" [truncated; read role artifact]" if len(encoded) > 2000 else ""))
+                    if len(result[field]) > items_per_field:
+                        lines.append(f"- {len(result[field]) - items_per_field} additional {field} retained; read role artifact.")
         data = ("\n".join(lines) + "\n").encode()
         if len(data) > MAX_MANIFEST_BYTES:
             raise AuditError("Aggregate report exceeds size limit")
@@ -417,6 +444,7 @@ def main(argv: list[str] | None = None) -> int:
     p.add_argument("--urls", type=Path, required=True)
     p.add_argument("--output", type=Path, required=True)
     p.add_argument("--max-workers", type=int, choices=(1, 2), default=2)
+    p.add_argument("--roles", nargs="+", choices=SUPPORTED_ROLES, default=list(ROLES))
     for name in ("capture", "next", "start", "reconcile", "release", "report"):
         command = commands.add_parser(name)
         command.add_argument("--output", type=Path, required=True)
@@ -431,7 +459,7 @@ def main(argv: list[str] | None = None) -> int:
         if args.command == "route":
             result = route(args.workflow)
         elif args.command == "plan":
-            result = plan(args.urls, args.output, args.max_workers)
+            result = plan(args.urls, args.output, args.max_workers, args.roles)
         elif args.command == "capture":
             result = capture(args.output)
         elif args.command == "next":

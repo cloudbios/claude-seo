@@ -28,6 +28,9 @@ MAX_NODES = 4096
 MANIFEST = "pilot-manifest.json"
 CAPTURE_FILES = ("capture/page.html", "capture/parsed.json", "capture/schema.json", "capture/transport.json")
 ROLES = ("technical", "schema")
+# Additional audit specialists may write results without changing the pilot's
+# original two-role validation and finalization contract.
+RESULT_ROLES = (*ROLES, "content", "images")
 LIMITS = [
     "Source HTML only; rendered DOM and browser checks are unavailable.",
     "No field Core Web Vitals, indexing, traffic, site-wide or provider verification.",
@@ -113,7 +116,7 @@ def no_symlinks(path: Path) -> Path:
 
 
 def child(root: Path, name: str) -> Path:
-    if name not in (*CAPTURE_FILES, MANIFEST, "REPORT.md", *(f"findings/{role}.json" for role in ROLES)):
+    if name not in (*CAPTURE_FILES, MANIFEST, "REPORT.md", *(f"findings/{role}.json" for role in RESULT_ROLES)):
         raise PilotError("Unrecognized artifact path")
     path = no_symlinks(root / name)
     if root not in path.parents:

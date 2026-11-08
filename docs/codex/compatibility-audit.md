@@ -230,7 +230,8 @@ in `CLAUDE.md` does not grant access or publishing authority for this fork.
 2. Adapt schema feedback and host state/configuration, reproducing the source
    findings first and retaining existing safety regressions.
 3. Add [routing and a bounded sampled audit](core-orchestration.md) using the
-   accepted native roles, then adapt remaining skills/agents in tested batches.
+   accepted native roles, then adapt remaining skills/agents in tested batches,
+   starting with [content and image markup](content-images.md).
 4. Accept optional integrations one by one, including cost and mutation controls.
 5. Build ownership-aware installation, packaging and upstream-sync procedures.
 6. Only after acceptance, propose replacing the installed legacy suite. Keep a

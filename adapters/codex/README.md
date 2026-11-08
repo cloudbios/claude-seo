@@ -2,7 +2,9 @@
 
 The optional core stage adds the `seo-codex` router and `seo-codex-audit` sampled
 audit to the verified one-page pilot. It covers 1–5 explicitly supplied pages,
-reuses the two existing native roles and limits active review jobs to two.
+supports technical, schema, content and image-markup roles, and limits active
+review jobs to two. The [content/image batch](../../docs/codex/content-images.md)
+describes the added source-only specialties and explicit role selection.
 Other upstream skills and provider integrations remain unavailable through it.
 
 ```sh
@@ -36,8 +38,8 @@ From this source checkout:
 python3 scripts/stage_codex_pilot.py --output /private/tmp/seo-pilot-project --register-agents
 ```
 
-The tested desktop setup used `--register-agents`. This writes only the two
-role registrations to the staged `.codex/config.toml` and
+The tested desktop pilot setup used `--register-agents`. Without the core
+flag this writes only the two pilot role registrations to the staged `.codex/config.toml` and
 includes that file in the provenance manifest. It does not edit the user's
 Codex configuration or choose a model. If the host only loads project settings
 from a trusted Git project, initialize the temporary project with `git init`
