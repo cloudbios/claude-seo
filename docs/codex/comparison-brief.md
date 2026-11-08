@@ -107,7 +107,7 @@ specialist acceptance.
 The stage-manifest SHA-256 is
 `f7b8ddb294f1421f66242a840b1d4d3508f298cafdfc2bd1c79ea91329c73d4e`.
 The native-receipt SHA-256 is
-`9dd2ac3fdb0eb78d52a644ad667be3242d6e3a6d6949e763334d361e49668e67`.
+`861120dc04dd05bac56fa67650a389ede90d2501cf86a70567da863a68aea13c`.
 
 | Case | Final brief SHA-256 |
 | --- | --- |
