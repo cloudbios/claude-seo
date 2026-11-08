@@ -96,6 +96,13 @@ PLAN_FILES = (
     ("adapters/codex/skills/seo-codex-plan/references/review.md", ".agents/skills/seo-codex-plan/references/review.md"),
     ("adapters/codex/skills/seo-codex-plan/references/industries.md", ".agents/skills/seo-codex-plan/references/industries.md"),
 )
+DRIFT_FILES = (
+    ("scripts/codex_drift.py", "scripts/codex_drift.py"),
+    ("adapters/codex/agents/seo-codex-drift.toml", ".codex/agents/seo-codex-drift.toml"),
+    ("adapters/codex/skills/seo-codex-drift/SKILL.md", ".agents/skills/seo-codex-drift/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-drift/references/review.md", ".agents/skills/seo-codex-drift/references/review.md"),
+    ("adapters/codex/skills/seo-codex-drift/references/fields.md", ".agents/skills/seo-codex-drift/references/fields.md"),
+)
 AGENT_REGISTRATION = '''[agents.seo-codex-technical]
 description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
 config_file = "agents/seo-codex-technical.toml"
@@ -146,6 +153,11 @@ PLAN_AGENT_REGISTRATION = '''
 description = "Build a source-labelled SEO strategy, roadmap, calendar, site structure and measurement plan."
 config_file = "agents/seo-codex-plan.toml"
 '''
+DRIFT_AGENT_REGISTRATION = '''
+[agents.seo-codex-drift]
+description = "Interpret changes between two verified saved page captures without assuming every change is a regression."
+config_file = "agents/seo-codex-drift.toml"
+'''
 STAGE_INSTRUCTIONS = """# Bounded Codex SEO pilot
 
 Use only `.agents/skills/seo-codex-pilot/SKILL.md` for this pilot. Do not invoke
@@ -173,7 +185,7 @@ dedicated directory> run codex_pilot.py ...`. The state root must be supplied
 by the caller and must not overlap this source project. If it is missing,
 request it; do not borrow a global or Claude state/configuration directory.
 The Codex runner allows only `codex_pilot.py`, `codex_audit.py`,
-`codex_visual.py`, `codex_sitemap.py`, `codex_agentic.py`, `codex_brief.py` and `codex_plan.py`;
+`codex_visual.py`, `codex_sitemap.py`, `codex_agentic.py`, `codex_brief.py`, `codex_plan.py` and `codex_drift.py`;
 each must be present in this stage to run. It refuses
 installation and providers.
 Run its `doctor --json` before the audit. Its clean environment is process
@@ -238,6 +250,17 @@ documents. Schedules and targets are proposals, and baselines remain unavailable
 There is no live research, audit import, provider execution or site change.
 The shared codex_planning.py module is a library, not an executable workflow.
 """
+DRIFT_INSTRUCTIONS = """
+## Optional saved-capture change review
+
+This stage includes `.agents/skills/seo-codex-drift/SKILL.md`. Compare two
+explicit captures with the same recorded requested URL using `codex_drift.py`
+through the prepared runtime. Preserve both captures. A failed after-capture
+allows only partial transport comparison; it never proves document elements
+were removed. The native reviewer interprets changes, while the coordinator
+finalizes REPORT.md after observing the reviewer stop. This workflow does not
+fetch, store history in a database, schedule monitoring or change a site.
+"""
 CORE_INSTRUCTIONS = """# Bounded Codex SEO core
 
 Use `.agents/skills/seo-codex/SKILL.md` to route requests. Its supported workflows
@@ -297,6 +320,7 @@ def stage_pilot(
     agentic_report: bool = False,
     content_brief: bool = False,
     strategy_plan: bool = False,
+    source_drift: bool = False,
     schema_hook_python: Path | None = None,
 ) -> dict:
     """Copy the explicit allowlist into a new or existing empty directory.
@@ -326,7 +350,7 @@ def stage_pilot(
         if not hook_python.is_file() or not os.access(hook_python, os.X_OK):
             raise StageError("Hook interpreter must be an existing executable file")
 
-    core_orchestration = core_orchestration or visual_evidence or sitemap_analysis or agentic_report or content_brief or strategy_plan
+    core_orchestration = core_orchestration or visual_evidence or sitemap_analysis or agentic_report or content_brief or strategy_plan or source_drift
     runtime_foundation = runtime_foundation or core_orchestration
     payloads: list[tuple[str, str, bytes]] = []
     sources = (COPY_FILES + (FOUNDATION_FILES if runtime_foundation else ())
@@ -334,9 +358,10 @@ def stage_pilot(
                + (VISUAL_FILES if visual_evidence else ())
                + (SITEMAP_FILES if sitemap_analysis else ())
                + (AGENTIC_FILES if agentic_report else ())
-               + (PLANNING_FILES if content_brief or strategy_plan else ())
+               + (PLANNING_FILES if content_brief or strategy_plan or source_drift else ())
                + (BRIEF_FILES if content_brief else ())
-               + (PLAN_FILES if strategy_plan else ()))
+               + (PLAN_FILES if strategy_plan else ())
+               + (DRIFT_FILES if source_drift else ()))
     for source, destination in sources:
         path = root / source
         _reject_symlinks(path)
@@ -352,7 +377,8 @@ def stage_pilot(
                     + (SITEMAP_INSTRUCTIONS if sitemap_analysis else "")
                     + (AGENTIC_INSTRUCTIONS if agentic_report else "")
                     + (BRIEF_INSTRUCTIONS if content_brief else "")
-                    + (PLAN_INSTRUCTIONS if strategy_plan else ""))
+                    + (PLAN_INSTRUCTIONS if strategy_plan else "")
+                    + (DRIFT_INSTRUCTIONS if source_drift else ""))
     generated = {"AGENTS.md": instructions.encode("utf-8")}
     if register_agents:
         generated[".codex/config.toml"] = (
@@ -362,6 +388,7 @@ def stage_pilot(
             + (AGENTIC_AGENT_REGISTRATION if agentic_report else "")
             + (BRIEF_AGENT_REGISTRATION if content_brief else "")
             + (PLAN_AGENT_REGISTRATION if strategy_plan else "")
+            + (DRIFT_AGENT_REGISTRATION if source_drift else "")
         ).encode("utf-8")
     if hook_python is not None:
         argv = [str(hook_python), "-I", "-B", str(output / "hooks" / "validate-schema.py")]
@@ -425,6 +452,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Include content-brief planning and its native author; implies core orchestration")
     parser.add_argument("--strategy-plan", action="store_true",
                         help="Include SEO strategy planning and its native planner; implies core orchestration")
+    parser.add_argument("--source-drift", action="store_true",
+                        help="Include saved-capture change comparison and its native reviewer; implies core orchestration")
     parser.add_argument("--schema-hook-python", type=Path,
                         help="Generate an untrusted local schema hook using this absolute prepared interpreter")
     args = parser.parse_args(argv)
@@ -438,6 +467,7 @@ def main(argv: list[str] | None = None) -> int:
                                agentic_report=args.agentic_report,
                                content_brief=args.content_brief,
                                strategy_plan=args.strategy_plan,
+                               source_drift=args.source_drift,
                                schema_hook_python=args.schema_hook_python)
     except (OSError, StageError) as exc:
         print(f"Pilot staging refused: {exc}", file=sys.stderr)

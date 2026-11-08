@@ -84,7 +84,7 @@ batch extracted one shared evidence helper used by both planning workflows;
 the brief's commands, nine-section result and output names are unchanged.
 The core sampled audit retains six roles. Each optional workflow contributes
 five files and one role, and the planning helper is copied once when needed.
-Enabling all five optional workflows copies 54 files with eleven roles;
+Enabling all six optional workflows copies 59 files with twelve roles;
 brief and strategy together copy 39 files. The default pilot remains eight files.
 
 Use the supplied prepared runtime and absolute dedicated state root:

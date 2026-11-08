@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES + stage.DRIFT_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -355,10 +355,36 @@ class StagePilotTests(unittest.TestCase):
 
     def test_missing_shared_planning_helper_leaves_no_output(self):
         (self.source / "scripts/codex_planning.py").unlink()
-        for option in ("content_brief", "strategy_plan"):
+        for option in ("content_brief", "strategy_plan", "source_drift"):
             with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
                 stage.stage_pilot(self.output, source_root=self.source, **{option: True})
             self.assertFalse(self.output.exists())
+
+    def test_source_drift_is_a_scoped_saved_capture_adapter(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    source_drift=True, register_agents=True)
+        self.assertEqual(len(manifest["files"]), 34)
+        added = {r["destination"] for r in manifest["files"]} - {
+            dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(added, {"scripts/codex_drift.py", "scripts/codex_planning.py",
+                                ".codex/agents/seo-codex-drift.toml", ".agents/skills/seo-codex-drift/SKILL.md",
+                                ".agents/skills/seo-codex-drift/references/review.md",
+                                ".agents/skills/seo-codex-drift/references/fields.md"})
+        self.assertFalse((self.output / "scripts/drift_baseline.py").exists())
+        self.assertFalse((self.output / "scripts/drift_compare.py").exists())
+        self.assertFalse((self.output / "scripts/google_auth.py").exists())
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 7)
+
+    def test_all_six_optional_workflows_share_one_helper(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
+                                    visual_evidence=True, agentic_report=True, content_brief=True,
+                                    strategy_plan=True, source_drift=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 59)
+        self.assertEqual(destinations.count("scripts/codex_planning.py"), 1)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 12)
 
     def test_missing_sitemap_parser_leaves_no_output(self):
         (self.source / "scripts/sitemap_discovery.py").unlink()

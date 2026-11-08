@@ -146,6 +146,28 @@ def test_strategy_route_requires_complete_payload_without_research(tmp_path, mon
         assert "plan" not in audit.SUPPORTED_ROLES
 
 
+def test_drift_route_requires_complete_payload_without_fetching(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("drift")["status"] == "unavailable"
+        paths = ("scripts/codex_drift.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-drift.toml",
+                 ".agents/skills/seo-codex-drift/SKILL.md",
+                 ".agents/skills/seo-codex-drift/references/review.md",
+                 ".agents/skills/seo-codex-drift/references/fields.md")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("drift") == {
+            "status": "available", "workflow": "drift", "skill": "seo-codex-drift",
+            "focus": "saved-capture-comparison"
+        }
+        (tmp_path / paths[1]).unlink()
+        assert audit.route("drift")["status"] == "unavailable"
+        assert "drift" not in audit.SUPPORTED_ROLES
+
+
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):
