@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Post-edit schema validation hook for Claude Code.
+"""Post-edit schema feedback for Claude file edits and Codex apply_patch events.
 
 Validates JSON-LD schema after file edits. The file is already written when
 a PostToolUse hook runs, so nothing here can undo the edit; the hook makes
@@ -40,7 +40,9 @@ checks if the file contains schema markup before validating.
 import json
 import os
 import re
+import stat
 import sys
+from pathlib import Path, PureWindowsPath
 from typing import Any, List
 
 BRACKET_PLACEHOLDERS = (
@@ -107,6 +109,17 @@ COMPONENT_EXTENSIONS = (".jsx", ".tsx", ".vue", ".svelte")
 SCHEMA_ORG_CONTEXTS = frozenset(
     {"https://schema.org", "http://schema.org", "https://schema.org/", "http://schema.org/"}
 )
+MAX_EVENT_BYTES = 1024 * 1024
+MAX_PATCH_OPERATIONS = 256
+MAX_FILE_BYTES = 10 * 1024 * 1024
+MAX_TOTAL_BYTES = 20 * 1024 * 1024
+MAX_FEEDBACK_ITEMS = 128
+MAX_SCHEMA_BLOCKS = 128
+MAX_SCHEMA_VALUES = 4096
+MAX_SCHEMA_OBJECTS = 128
+MAX_SCHEMA_DEPTH = 64
+MAX_PLACEHOLDER_OCCURRENCES = 128
+VALID_EXTENSIONS = (".html", ".htm", ".jsx", ".tsx", ".vue", ".svelte", ".php", ".ejs")
 
 
 def _configure_utf8() -> None:
@@ -264,43 +277,315 @@ def _validate_schema_object(
     return errors
 
 
-def _resolve_filepath():
-    """File path from argv (exec-form template) or the stdin hook-event JSON.
+def _read_input():
+    """Preserve legacy path precedence; otherwise read one bounded hook event.
 
     Claude Code's documented hook contract delivers the event as JSON on stdin;
     the argv template is kept for harnesses that substitute it. Whichever yields
     an existing file wins.
     """
     if len(sys.argv) > 1 and os.path.isfile(sys.argv[1]):
-        return sys.argv[1]
+        return sys.argv[1], None, []
     try:
         if not sys.stdin.isatty():
-            raw = sys.stdin.read()
+            raw = sys.stdin.read(MAX_EVENT_BYTES + 1)
+            if len(raw.encode("utf-8")) > MAX_EVENT_BYTES:
+                return None, None, ["Hook event exceeds the size limit; validation not completed."]
             if raw.strip():
                 event = json.loads(raw)
-                fp = (event.get("tool_input") or {}).get("file_path")
-                if fp and os.path.isfile(fp):
-                    return fp
-    except (OSError, ValueError):
-        pass
-    return None
+                if not isinstance(event, dict):
+                    return None, None, ["Invalid hook event object; validation not completed."]
+                # Codex input must use the contained patch-target path, even if
+                # an unexpected legacy field is also present in the event.
+                if event.get("tool_name") == "apply_patch":
+                    return None, event, []
+                tool_input = event.get("tool_input")
+                if isinstance(tool_input, dict):
+                    fp = tool_input.get("file_path")
+                    if isinstance(fp, str) and os.path.isfile(fp):
+                        return fp, None, []
+    except (OSError, ValueError, RecursionError):
+        return None, None, ["Unreadable or invalid hook event; validation not completed."]
+    return None, None, []
+
+
+class PatchInputError(ValueError):
+    """A patch envelope cannot safely identify its final on-disk targets."""
+
+
+def _patch_targets(command):
+    """Parse operation boundaries, never source contents or executable commands.
+
+    Paths in added/context lines carry a leading +/space and cannot become
+    operation headers. A move is only legal immediately after an update header.
+    Returned deletions cancel an earlier target; subsequent adds can restore it.
+    """
+    if not isinstance(command, str):
+        raise PatchInputError("Patch command must be a string.")
+    lines = command.splitlines()
+    if len(lines) < 3 or lines[0] != "*** Begin Patch" or lines[-1] != "*** End Patch":
+        raise PatchInputError("Patch envelope is missing or malformed.")
+    operations = []
+    index = 1
+    while index < len(lines) - 1:
+        line = lines[index]
+        kind = next((kind for kind in ("Add", "Update", "Delete")
+                     if line.startswith(f"*** {kind} File: ")), None)
+        if kind is None:
+            raise PatchInputError("Invalid patch operation header.")
+        path = line[len(f"*** {kind} File: "):]
+        if not path or "\x00" in path:
+            raise PatchInputError("Invalid patch path.")
+        index += 1
+        source = path
+        if kind == "Update" and index < len(lines) - 1 and lines[index].startswith("*** Move to: "):
+            path = lines[index][len("*** Move to: "):]
+            if not path or "\x00" in path:
+                raise PatchInputError("Invalid move path.")
+            index += 1
+        body_lines = 0
+        at_end = False
+        while index < len(lines) - 1:
+            body = lines[index]
+            if any(body.startswith(f"*** {operation} File: ") for operation in ("Add", "Update", "Delete")):
+                break
+            if kind == "Delete" or at_end:
+                raise PatchInputError("Unexpected patch operation body.")
+            if kind == "Add":
+                valid = body.startswith("+")
+            else:
+                valid = body.startswith((" ", "+", "-")) or body == "@@" or body.startswith("@@ ")
+                if body == "*** End of File":
+                    valid, at_end = True, True
+            if not valid:
+                raise PatchInputError("Invalid patch body or misplaced move header.")
+            body_lines += 1
+            index += 1
+        if kind == "Update" and not body_lines and source == path:
+            raise PatchInputError("Update operation has no body.")
+        operations.append((kind, source, path))
+        if len(operations) > MAX_PATCH_OPERATIONS:
+            raise PatchInputError("Patch operation limit exceeded.")
+    return operations
+
+
+def _no_symlinks(path):
+    return not any(part.is_symlink() for part in (path, *path.parents))
+
+
+def _safe_patch_path(root, value):
+    """Contain paths before opening; rejected values never enter diagnostics."""
+    path = Path(value)
+    if ".." in path.parts or (os.name != "nt" and PureWindowsPath(value).drive):
+        raise PatchInputError("Path outside the patch working directory was skipped.")
+    path = path if path.is_absolute() else root / path
+    if not _no_symlinks(path):
+        raise PatchInputError("Symlink path was skipped.")
+    path = path.resolve()
+    if path == root or not path.is_relative_to(root):
+        raise PatchInputError("Path outside the patch working directory was skipped.")
+    return path
+
+
+def _read_regular_file(path, expected, limit):
+    """Bound reads and refuse changed files; anchor POSIX traversal without links.
+
+    Windows uses the same before/after file-identity check but lacks this POSIX
+    directory-descriptor traversal. Neither path reads a replacement FIFO.
+    """
+    directory_fd = file_fd = None
+    try:
+        flags = os.O_RDONLY | getattr(os, "O_NONBLOCK", 0)
+        if os.open in os.supports_dir_fd and hasattr(os, "O_NOFOLLOW"):
+            directory_flags = os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW
+            directory_fd = os.open(path.anchor, directory_flags)
+            for part in path.parts[1:-1]:
+                next_fd = os.open(part, directory_flags, dir_fd=directory_fd)
+                os.close(directory_fd)
+                directory_fd = next_fd
+            file_fd = os.open(path.name, flags | os.O_NOFOLLOW, dir_fd=directory_fd)
+        else:
+            file_fd = os.open(path, flags)
+        actual = os.fstat(file_fd)
+        if not stat.S_ISREG(actual.st_mode) or (actual.st_dev, actual.st_ino) != (expected.st_dev, expected.st_ino):
+            raise OSError("File changed during validation")
+        with os.fdopen(file_fd, "rb") as handle:
+            file_fd = None
+            return handle.read(limit + 1)
+    finally:
+        if file_fd is not None:
+            os.close(file_fd)
+        if directory_fd is not None:
+            os.close(directory_fd)
+
+
+def _schema_within_limits(blocks, filepath):
+    """Bound Codex-only analysis expansion before the legacy recursive validator.
+
+    JSON decoding is bounded by the file cap. Invalid JSON is left for the
+    validator's existing diagnostic; excessive recursion is an incomplete check.
+    The iterative walk bounds graph width/depth, and repeated placeholder tokens
+    are bounded before findall in the legacy validator can allocate its results.
+    """
+    if len(blocks) > MAX_SCHEMA_BLOCKS:
+        return False
+    values = objects = placeholders = 0
+    for block in blocks:
+        block = block.strip()
+        if _is_template_expression(block, filepath):
+            continue
+        try:
+            data = json.loads(block)
+        except json.JSONDecodeError:
+            continue
+        except RecursionError:
+            return False
+        pending = [(data, 0)]
+        while pending:
+            item, depth = pending.pop()
+            values += 1
+            if values > MAX_SCHEMA_VALUES or depth > MAX_SCHEMA_DEPTH:
+                return False
+            texts = (item,) if isinstance(item, str) else item.keys() if isinstance(item, dict) else ()
+            for text in texts:
+                for _ in BARE_PLACEHOLDER_RE.finditer(text):
+                    placeholders += 1
+                    if placeholders > MAX_PLACEHOLDER_OCCURRENCES:
+                        return False
+            if isinstance(item, dict):
+                objects += 1
+                if objects > MAX_SCHEMA_OBJECTS:
+                    return False
+                if len(item) > MAX_SCHEMA_VALUES - values - len(pending):
+                    return False
+                pending.extend((value, depth + 1) for value in item.values())
+            elif isinstance(item, list):
+                if len(item) > MAX_SCHEMA_VALUES - values - len(pending):
+                    return False
+                pending.extend((value, depth + 1) for value in item)
+    return True
+
+
+def _codex_feedback(event):
+    """Return separate critical/warning lists for safe final files in a patch."""
+    critical, warnings = [], []
+    tool_input = event.get("tool_input")
+    if not isinstance(tool_input, dict):
+        return [], ["Invalid apply_patch input; validation not completed."]
+    try:
+        operations = _patch_targets(tool_input.get("command"))
+        cwd = event.get("cwd", os.getcwd())
+        if not isinstance(cwd, str) or not cwd or "\x00" in cwd:
+            raise PatchInputError("Invalid patch working directory.")
+        root = Path(cwd)
+        if not root.is_absolute() or not _no_symlinks(root) or not root.is_dir():
+            raise PatchInputError("Invalid or symlinked patch working directory.")
+        root = root.resolve()
+    except (PatchInputError, OSError, ValueError):
+        return [], ["Invalid or oversized apply_patch envelope or working directory; validation not completed."]
+
+    targets = {}
+    for number, (kind, source, destination) in enumerate(operations, 1):
+        try:
+            # Check both ends of a move, even though only its final file is read.
+            old_path = _safe_patch_path(root, source)
+            path = _safe_patch_path(root, destination)
+        except (PatchInputError, OSError, ValueError, RuntimeError):
+            warnings.append(f"Operation {number}: unsafe path skipped; validation not completed.")
+            continue
+        if kind == "Delete":
+            targets.pop(path, None)
+        else:
+            if old_path != path:
+                targets.pop(old_path, None)
+            targets[path] = number
+
+    total = 0
+    for path, number in targets.items():
+        # The relative label is escaped and bounded; rejected paths are never printed.
+        label = json.dumps(str(path.relative_to(root)), ensure_ascii=True)[:200]
+        prefix = f"Operation {number} ({label})"
+        if path.suffix.lower() not in VALID_EXTENSIONS:
+            warnings.append(f"{prefix}: unsupported file type; not validated.")
+            continue
+        try:
+            info = path.lstat()
+            if not stat.S_ISREG(info.st_mode) or not _no_symlinks(path):
+                warnings.append(f"{prefix}: nonregular or symlink file; not validated.")
+                continue
+            if info.st_size > MAX_FILE_BYTES:
+                warnings.append(f"{prefix}: file exceeds size limit; not validated.")
+                continue
+            remaining = MAX_TOTAL_BYTES - total
+            if info.st_size > remaining:
+                warnings.append(f"{prefix}: aggregate file limit exceeded; not validated.")
+                continue
+            data = _read_regular_file(path, info, min(MAX_FILE_BYTES, remaining))
+            total += len(data)
+            if len(data) > min(MAX_FILE_BYTES, remaining):
+                warnings.append(f"{prefix}: file grew beyond size limit; not validated.")
+                continue
+            content = data.decode("utf-8", errors="replace")
+            blocks = _extract_ld_json_blocks(content)
+            if not _schema_within_limits(blocks, str(path)):
+                warnings.append(f"{prefix}: schema analysis limit exceeded; not validated.")
+                continue
+            skipped = sum(_is_template_expression(block.strip(), str(path)) for block in blocks)
+            if skipped:
+                warnings.append(f"{prefix}: {skipped} template-only schema block(s); not statically validated.")
+                if skipped == len(blocks):
+                    continue
+            errors = validate_jsonld(content, str(path))
+            for error in errors:
+                target = critical if any(word in error.lower() for word in ("placeholder", "deprecated", "retired")) else warnings
+                # Parser exception text can include source content: keep only its location.
+                if ": Invalid JSON;" in error:
+                    error = error.split(": Invalid JSON;", 1)[0] + ": Invalid JSON."
+                target.append(f"{prefix}: {error[:1000]}")
+        except (OSError, ValueError, RecursionError, RuntimeError):
+            warnings.append(f"{prefix}: unreadable or unsupported content; validation not completed.")
+    return critical, warnings
+
+
+def _emit_feedback(critical, warnings, context_prefix):
+    """One aggregate response, keeping critical feedback on stderr for both hosts."""
+    if len(critical) + len(warnings) > MAX_FEEDBACK_ITEMS:
+        critical = critical[:MAX_FEEDBACK_ITEMS]
+        warnings = warnings[:max(0, MAX_FEEDBACK_ITEMS - len(critical))]
+        warnings.append("Further findings omitted from bounded feedback; validation needs review.")
+    if critical:
+        print("🛑 Schema validation ERRORS (flagged for Claude, fix before shipping):", file=sys.stderr)
+        for error in critical:
+            print(f"  - {error}", file=sys.stderr)
+        if warnings:
+            print("⚠️  Also warnings:", file=sys.stderr)
+            for warning in warnings:
+                print(f"  - {warning}", file=sys.stderr)
+        return 2
+    if warnings:
+        context = context_prefix + "\n" + "\n".join(f"- {warning}" for warning in warnings)
+        print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": context}}))
+    return 0
 
 
 def main():
     _configure_utf8()
-    filepath = _resolve_filepath()
+    filepath, event, diagnostics = _read_input()
+    if event is not None:
+        critical, warnings = _codex_feedback(event)
+        sys.exit(_emit_feedback(critical, diagnostics + warnings, "Schema validation feedback for apply_patch:"))
+    if diagnostics:
+        sys.exit(_emit_feedback([], diagnostics, "Schema validation feedback:"))
     if not filepath:
         sys.exit(0)
 
     # Only validate HTML-like files
-    valid_extensions = (".html", ".htm", ".jsx", ".tsx", ".vue", ".svelte", ".php", ".ejs")
-    if not filepath.lower().endswith(valid_extensions):
+    if not filepath.lower().endswith(VALID_EXTENSIONS):
         sys.exit(0)
 
     # File-size guard: skip files >10MB to bound memory + hook latency.
     # Real source files almost never exceed this; bigger inputs are typically
     # generated, minified bundles or accidental binary writes.
-    MAX_FILE_BYTES = 10 * 1024 * 1024  # 10 MiB
     try:
         if os.path.getsize(filepath) > MAX_FILE_BYTES:
             sys.exit(0)
@@ -323,21 +608,7 @@ def main():
     critical = [e for e in errors if any(kw in e.lower() for kw in critical_keywords)]
     warnings = [e for e in errors if e not in critical]
 
-    if critical:
-        # Exit 2: Claude Code feeds stderr back to Claude (stdout is ignored).
-        print("🛑 Schema validation ERRORS (flagged for Claude, fix before shipping):", file=sys.stderr)
-        for e in critical:
-            print(f"  - {e}", file=sys.stderr)
-        if warnings:
-            print("⚠️  Also warnings:", file=sys.stderr)
-            for w in warnings:
-                print(f"  - {w}", file=sys.stderr)
-        sys.exit(2)
-
-    # Warnings only: exit 0 with JSON, so Claude reads them as context.
-    context = "Schema validation warnings for " + filepath + ":\n" + "\n".join(f"- {w}" for w in warnings)
-    print(json.dumps({"hookSpecificOutput": {"hookEventName": "PostToolUse", "additionalContext": context}}))
-    sys.exit(0)
+    sys.exit(_emit_feedback(critical, warnings, "Schema validation warnings for " + filepath + ":"))
 
 
 if __name__ == "__main__":

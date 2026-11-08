@@ -3,6 +3,9 @@
 import hashlib
 import importlib.util
 import json
+import shlex
+import subprocess
+import sys
 import tempfile
 import tomllib
 import unittest
@@ -22,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -99,6 +102,71 @@ class StagePilotTests(unittest.TestCase):
         self.assertEqual(generated[".codex/config.toml"]["sha256"], hashlib.sha256(data).hexdigest())
         self.assertEqual(generated[".codex/config.toml"]["bytes"], len(data))
         self.assertEqual(manifest["compatibility_status"], "not_verified_by_staging")
+
+    def test_foundation_adds_only_the_bounded_runtime_payload(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, runtime_foundation=True)
+        additions = {entry["destination"] for entry in manifest["files"]} - {
+            destination for _, destination in stage.COPY_FILES
+        }
+        self.assertEqual(additions, {"scripts/runtime.py", "scripts/state_paths.py"})
+        self.assertEqual(len(manifest["files"]), 10)
+        for entry in manifest["files"]:
+            data = (self.output / entry["destination"]).read_bytes()
+            self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
+        self.assertFalse((self.output / "scripts/google_auth.py").exists())
+        self.assertFalse((self.output / ".codex/hooks.json").exists())
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX hook staging contract")
+    def test_opt_in_hook_is_scoped_quoted_and_manifested_without_trust(self):
+        python = Path(sys.executable).resolve()
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    schema_hook_python=Path(sys.executable))
+        config_path = self.output / ".codex/hooks.json"
+        config = json.loads(config_path.read_text())
+        self.assertEqual(set(config["hooks"]), {"PostToolUse"})
+        group, = config["hooks"]["PostToolUse"]
+        self.assertEqual(group["matcher"], "^apply_patch$")
+        handler, = group["hooks"]
+        expected = [str(python), "-I", "-B", str(self.output / "hooks/validate-schema.py")]
+        self.assertEqual(shlex.split(handler["command"]), expected)
+        self.assertNotIn("commandWindows", handler)
+        self.assertEqual(handler["type"], "command")
+        self.assertEqual(handler["timeout"], 30)
+        entry, = [row for row in manifest["generated_files"]
+                  if row["destination"] == ".codex/hooks.json"]
+        self.assertEqual(entry["sha256"], hashlib.sha256(config_path.read_bytes()).hexdigest())
+        self.assertEqual(manifest["compatibility_status"], "not_verified_by_staging")
+        self.assertNotIn("trust", handler)
+        self.assertFalse((self.output / ".codex/config.toml").exists())
+
+    def test_hook_requires_explicit_executable_before_writing_output(self):
+        for python in (Path("python3"), self.base / "does-not-exist"):
+            with self.subTest(python=python), self.assertRaises(stage.StageError):
+                stage.stage_pilot(self.output, source_root=self.source, schema_hook_python=python)
+            self.assertFalse(self.output.exists())
+
+    def test_hook_staging_refuses_unverified_windows_shell(self):
+        with mock.patch.object(stage.sys, "platform", "win32"), self.assertRaisesRegex(stage.StageError, "POSIX"):
+            stage.stage_pilot(self.output, source_root=self.source, schema_hook_python=Path(sys.executable))
+        self.assertFalse(self.output.exists())
+
+    @unittest.skipIf(sys.platform == "win32", "POSIX hook command contract")
+    def test_hook_command_keeps_shell_metacharacters_literal(self):
+        self.output = self.base / "stage; touch injected; #"
+        (self.source / "hooks/validate-schema.py").write_text("print('hook-ok')\n")
+        stage.stage_pilot(self.output, source_root=self.source, schema_hook_python=Path(sys.executable))
+        config = json.loads((self.output / ".codex/hooks.json").read_text())
+        command = config["hooks"]["PostToolUse"][0]["hooks"][0]["command"]
+        result = subprocess.run(command, shell=True, cwd=self.base, capture_output=True, text=True, check=False)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(result.stdout.strip(), "hook-ok")
+        self.assertFalse((self.base / "injected").exists())
+
+    def test_missing_foundation_source_leaves_no_output(self):
+        (self.source / "scripts/state_paths.py").unlink()
+        with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+            stage.stage_pilot(self.output, source_root=self.source, runtime_foundation=True)
+        self.assertFalse(self.output.exists())
 
     def test_refuses_nonempty_directory_without_changes(self):
         self.output.mkdir()
