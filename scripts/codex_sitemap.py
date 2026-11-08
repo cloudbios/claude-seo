@@ -88,6 +88,11 @@ def lastmod(value: str, at: datetime) -> str:
             year, month, day = match.groups()
             parsed = datetime(int(year), int(month or 1), int(day or 1), tzinfo=timezone.utc)
         elif re.fullmatch(r"\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(?::\d{2}(?:\.\d+)?)?(?:Z|[+-]\d{2}:\d{2})", value):
+            # Keep the W3C profile stable even when newer Python releases
+            # accept ISO 8601's 24:00 end-of-day notation.
+            clock = re.search(r"T(\d{2}):(\d{2})(?::(\d{2}))?", value)
+            if int(clock[1]) > 23 or int(clock[2]) > 59 or int(clock[3] or 0) > 59:
+                return "invalid"
             offset = re.search(r"[+-](\d{2}):(\d{2})$", value)
             if offset and (int(offset[1]) > 23 or int(offset[2]) > 59):
                 return "invalid"
