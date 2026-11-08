@@ -1,6 +1,6 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual, sitemap or saved Lighthouse analysis, content briefs, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual, sitemap or saved Lighthouse analysis, content briefs, strategy plans, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
@@ -35,6 +35,7 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `sitemap` | When the optional stage is installed, read `../seo-codex-sitemap/SKILL.md`; standalone review of supplied XML and up to five existing verified page captures. It does not add a role to the sampled audit. |
 | `agentic` | When the optional stage is installed, read `../seo-codex-agentic/SKILL.md`; standalone interpretation of a supplied Lighthouse/PSI JSON report. It does not run Lighthouse or add a role to the sampled audit. |
 | `content-brief` | When the optional stage is installed, read `../seo-codex-content-brief/SKILL.md`; standalone new/improve page planning from supplied requirements and up to five existing verified captures. It does not add a role to the sampled audit. |
+| `plan` | When the optional stage is installed, read `../seo-codex-plan/SKILL.md`; a strategy, roadmap, calendar, site structure and measurement plan using supplied resources and up to five captures. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
 
 Use `page` for one-page requests and `audit` for an explicit page sample or
@@ -56,7 +57,7 @@ workflow that addresses the user's intent. Do not invoke a nearby capability
 without telling the user how its coverage differs.
 
 This includes unported `geo`,
-`plan`, `programmatic`, `competitor-pages`, `maps`,
+`programmatic`, `competitor-pages`, `maps`,
 `google`, `backlinks`, `cluster`, `sxo`, `drift`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence
 of missing credentials. Never inspect credentials, install dependencies,

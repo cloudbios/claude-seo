@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -286,11 +286,11 @@ class StagePilotTests(unittest.TestCase):
     def test_brief_option_is_scoped_and_preserves_author_notice(self):
         manifest = stage.stage_pilot(self.output, source_root=self.source,
                                     content_brief=True, register_agents=True)
-        self.assertEqual(len(manifest["files"]), 33)
+        self.assertEqual(len(manifest["files"]), 34)
         added = {r["destination"] for r in manifest["files"]} - {
             dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
         }
-        self.assertEqual(added, {"scripts/codex_brief.py", ".codex/agents/seo-codex-content-brief.toml",
+        self.assertEqual(added, {"scripts/codex_brief.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-content-brief.toml",
                                 ".agents/skills/seo-codex-content-brief/SKILL.md",
                                 ".agents/skills/seo-codex-content-brief/references/review.md",
                                 ".agents/skills/seo-codex-content-brief/LICENSE.txt"})
@@ -311,7 +311,7 @@ class StagePilotTests(unittest.TestCase):
         manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
                                     visual_evidence=True, agentic_report=True, content_brief=True, register_agents=True)
         destinations = [row["destination"] for row in manifest["files"]]
-        self.assertEqual(len(destinations), 48)
+        self.assertEqual(len(destinations), 49)
         self.assertEqual(len(destinations), len(set(destinations)))
         self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 10)
 
@@ -320,6 +320,45 @@ class StagePilotTests(unittest.TestCase):
         with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
             stage.stage_pilot(self.output, source_root=self.source, content_brief=True)
         self.assertFalse(self.output.exists())
+
+    def test_strategy_is_scoped_and_shares_only_the_planning_helper(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    strategy_plan=True, register_agents=True)
+        self.assertEqual(len(manifest["files"]), 34)
+        added = {r["destination"] for r in manifest["files"]} - {
+            dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(added, {"scripts/codex_plan.py", "scripts/codex_planning.py",
+                                ".codex/agents/seo-codex-plan.toml", ".agents/skills/seo-codex-plan/SKILL.md",
+                                ".agents/skills/seo-codex-plan/references/review.md",
+                                ".agents/skills/seo-codex-plan/references/industries.md"})
+        self.assertFalse((self.output / "scripts/codex_brief.py").exists())
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 7)
+
+    def test_brief_and_strategy_copy_shared_helper_once(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    content_brief=True, strategy_plan=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 39)
+        self.assertEqual(destinations.count("scripts/codex_planning.py"), 1)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 8)
+
+    def test_all_optional_workflows_share_one_planning_helper(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
+                                    visual_evidence=True, agentic_report=True, content_brief=True,
+                                    strategy_plan=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 54)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 11)
+
+    def test_missing_shared_planning_helper_leaves_no_output(self):
+        (self.source / "scripts/codex_planning.py").unlink()
+        for option in ("content_brief", "strategy_plan"):
+            with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+                stage.stage_pilot(self.output, source_root=self.source, **{option: True})
+            self.assertFalse(self.output.exists())
 
     def test_missing_sitemap_parser_leaves_no_output(self):
         (self.source / "scripts/sitemap_discovery.py").unlink()

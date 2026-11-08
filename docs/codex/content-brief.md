@@ -79,10 +79,13 @@ in each staged copy.
   --register-agents --content-brief
 ```
 
-This copies 33 files and registers seven profiles. It leaves the core sampled
-audit's six roles unchanged. Each of the four optional adapters adds five
-files and one role; enabling all four copies 48 files and registers ten roles.
-The default pilot remains eight files.
+The current stage copies 34 files and registers seven profiles. The strategy
+batch extracted one shared evidence helper used by both planning workflows;
+the brief's commands, nine-section result and output names are unchanged.
+The core sampled audit retains six roles. Each optional workflow contributes
+five files and one role, and the planning helper is copied once when needed.
+Enabling all five optional workflows copies 54 files with eleven roles;
+brief and strategy together copy 39 files. The default pilot remains eight files.
 
 Use the supplied prepared runtime and absolute dedicated state root:
 
