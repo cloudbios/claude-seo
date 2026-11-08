@@ -319,6 +319,147 @@ def _wait_for_dom_stability(page, timeout_ms: int) -> bool:  # type: ignore[no-u
     return False
 
 
+SAVED_VIEWPORTS = {"desktop": {"width": 1280, "height": 800},
+                   "mobile": {"width": 390, "height": 844}}
+SAVED_HTML_LIMIT = 2 * 1024 * 1024
+SAVED_PNG_LIMIT = 8 * 1024 * 1024
+SAVED_DIAGNOSTIC_LIMIT = 32
+
+
+def render_saved_html(raw_html: bytes, original_url: str, *, browser_path: str,
+                      timeout_ms: int = 5000, content_type: str = "text/html; charset=utf-8",
+                      on_viewport=None) -> dict:
+    """Render saved bytes offline; never fetch the source or discover a browser.
+
+    Call in a supervised subprocess: hostile inline JavaScript can stall sync
+    Playwright calls beyond their API timeout. Each viewport has a fresh context.
+    ``on_viewport(name, result)`` may persist completed viewports incrementally.
+    The only fulfilled request is the original page's first main navigation.
+    """
+    from pathlib import Path
+    from urllib.parse import urlsplit
+
+    if not isinstance(raw_html, bytes) or len(raw_html) > SAVED_HTML_LIMIT:
+        raise ValueError("Saved HTML exceeds the byte budget")
+    parsed = urlsplit(original_url)
+    if (parsed.scheme not in ("http", "https") or not parsed.hostname or
+            parsed.username is not None or parsed.password is not None or parsed.fragment):
+        raise ValueError("Saved document requires its original public HTTP(S) URL")
+    from url_safety import validate_url
+    if os.environ.get("CLAUDE_SEO_LOCAL_TARGETS", "").strip() or not validate_url(original_url):
+        raise ValueError("Saved document requires a public HTTP(S) URL")
+    executable = Path(browser_path)
+    if not executable.is_absolute() or not executable.is_file() or not os.access(executable, os.X_OK):
+        raise ValueError("An explicit existing absolute browser executable is required")
+    if type(timeout_ms) is not int or not 250 <= timeout_ms <= 20000:
+        raise ValueError("Saved render timeout must be 250..20000 milliseconds")
+    if (not isinstance(content_type, str) or len(content_type) > 200 or
+            not re.fullmatch(r"text/html(?:; charset=[A-Za-z0-9._-]{1,40})?", content_type)):
+        raise ValueError("Saved render content type must be bounded text/html with an optional charset")
+    if sync_playwright is None:
+        raise RuntimeError("Playwright is unavailable")
+    results = {}
+    # CSP supplements context-wide interception for non-HTTP navigations and
+    # browser APIs that do not issue routable HTTP requests (workers/WebRTC).
+    csp = ("default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval' data: blob:; "
+           "style-src 'unsafe-inline' data: blob:; img-src data: blob:; font-src data:; "
+           "connect-src 'none'; frame-src 'none'; worker-src 'none'; object-src 'none'; "
+           "form-action 'none'; base-uri 'none'")
+    with sync_playwright() as playwright:
+        browser = playwright.chromium.launch(
+            executable_path=str(executable), headless=True, timeout=timeout_ms,
+            args=["--disable-background-networking", "--disable-component-update",
+                  "--disable-sync", "--disable-quic", "--no-first-run",
+                  "--host-resolver-rules=MAP * ~NOTFOUND",
+                  "--force-webrtc-ip-handling-policy=disable_non_proxied_udp"],
+        )
+        try:
+            for name, viewport in SAVED_VIEWPORTS.items():
+                result = {"status": "partial", "diagnostics": [], "blocked_requests": 0,
+                          "browser_version": str(browser.version)[:200]}
+                context = None
+                main_page = None
+                fulfilled = False
+                navigation_url = original_url
+
+                def route_request(route):
+                    nonlocal fulfilled
+                    request = route.request
+                    if (not fulfilled and main_page is not None and request.url == navigation_url
+                            and request.is_navigation_request() and request.frame == main_page.main_frame
+                            and request.method == "GET"):
+                        fulfilled = True
+                        route.fulfill(status=200, body=raw_html,
+                                      headers={"content-type": content_type, "content-security-policy": csp})
+                    else:
+                        result["blocked_requests"] = min(result["blocked_requests"] + 1, 1000000)
+                        route.abort()
+
+                def diagnostic(message):
+                    if len(result["diagnostics"]) < SAVED_DIAGNOSTIC_LIMIT:
+                        result["diagnostics"].append(str(message)[:500])
+
+                try:
+                    context = new_guarded_context(browser, route_request, viewport=viewport,
+                                                  device_scale_factor=1, accept_downloads=False)
+                    context.add_init_script("""(() => {
+                      for (const key of ['RTCPeerConnection', 'webkitRTCPeerConnection']) {
+                        Object.defineProperty(globalThis, key, {value: undefined, configurable: false});
+                      }
+                      window.open = () => null;
+                    })();""")
+                    main_page = context.new_page()
+                    main_page.set_default_timeout(timeout_ms)
+                    navigation_url = main_page.evaluate("url => new URL(url).href", original_url)
+                    main_page.on("pageerror", lambda error: diagnostic("Inline script error: " + str(error)))
+                    main_page.on("console", lambda message: diagnostic(message.text) if message.type == "error" else None)
+                    main_page.goto(original_url, wait_until="domcontentloaded", timeout=timeout_ms)
+                    if not _wait_for_dom_stability(main_page, min(timeout_ms, 1500)):
+                        diagnostic("DOM stability threshold was not reached within the bounded wait.")
+                    html = main_page.evaluate("""(limit) => {
+                      const html = document.documentElement.outerHTML;
+                      if (html.length > limit) throw new Error('Rendered HTML exceeds byte budget');
+                      return html;
+                    }""", SAVED_HTML_LIMIT)
+                    html_bytes = html.encode("utf-8")
+                    if len(html_bytes) > SAVED_HTML_LIMIT:
+                        raise ValueError("Rendered HTML exceeds byte budget")
+                    geometry = main_page.evaluate("""() => {
+                      const root = document.documentElement;
+                      const nodes = document.querySelectorAll('*');
+                      const overflow = [];
+                      for (let i = 0; i < Math.min(nodes.length, 5000); i++) {
+                        const r = nodes[i].getBoundingClientRect();
+                        if ((r.right > innerWidth + 1 || r.left < -1) && overflow.length < 20)
+                          overflow.push({tag: nodes[i].tagName.slice(0, 32),
+                            left: Math.max(-1000000, Math.min(1000000, Math.round(r.left))),
+                            right: Math.max(-1000000, Math.min(1000000, Math.round(r.right)))});
+                      }
+                      return {width: innerWidth, height: innerHeight,
+                        scroll_width: Math.min(root.scrollWidth, 1000000),
+                        scroll_height: Math.min(root.scrollHeight, 1000000),
+                        inspected_elements: Math.min(nodes.length, 5000),
+                        elements_truncated: nodes.length > 5000, overflow};
+                    }""")
+                    png = main_page.screenshot(type="png", full_page=False, timeout=timeout_ms)
+                    if len(png) > SAVED_PNG_LIMIT:
+                        raise ValueError("Viewport PNG exceeds byte budget")
+                    if not fulfilled:
+                        raise ValueError("Saved main navigation was not fulfilled")
+                    result.update(status="complete", html=html_bytes, png=png, geometry=geometry)
+                except Exception as exc:
+                    diagnostic("Viewport failed: " + type(exc).__name__)
+                finally:
+                    if context is not None:
+                        context.close()
+                results[name] = result
+                if on_viewport is not None:
+                    on_viewport(name, result)
+        finally:
+            browser.close()
+    return results
+
+
 def _ax_value(node: dict[str, Any], key: str) -> str:
     value = node.get(key)
     if isinstance(value, dict):

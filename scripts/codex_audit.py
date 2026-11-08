@@ -40,6 +40,15 @@ def route(workflow: str) -> dict:
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-audit", "focus": "explicit-page-sample"}
     if workflow in ("content", "images"):
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-" + workflow, "focus": workflow}
+    if workflow == "visual":
+        required = ("scripts/codex_visual.py", ".codex/agents/seo-codex-visual.toml",
+                    ".agents/skills/seo-codex-visual/SKILL.md",
+                    ".agents/skills/seo-codex-visual/references/review.md")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-visual",
+                    "focus": "offline-saved-html"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional offline visual adapter is not staged; no browser or provider was started."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}

@@ -1,6 +1,6 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to the technical/schema page pilot, qualitative content or image-markup reviews, sampled audits of up to five explicit pages, or prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to the technical/schema page pilot, qualitative content or image-markup reviews, sampled audits of up to five explicit pages, optional saved-HTML visual review, or prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
@@ -29,6 +29,7 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `content` | Read `../seo-codex-content/SKILL.md`; qualitative source-HTML review of 1–5 explicit pages using only the content role. |
 | `images` | Read `../seo-codex-images/SKILL.md`; image-markup review of 1–5 explicit pages using only the images role. |
 | `audit` | Read `../seo-codex-audit/SKILL.md`; sampled audit of 1–5 explicit pages, selecting all four roles unless the user requests narrower coverage. |
+| `visual` | When the optional stage is installed, read `../seo-codex-visual/SKILL.md`; separate offline viewport review of an existing verified pilot capture. It does not add a role to the sampled audit. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
 
 Use `page` for one-page requests and `audit` for an explicit page sample or
