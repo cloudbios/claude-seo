@@ -995,21 +995,26 @@ def safe_requests_head(
 
 
 @contextmanager
-def safe_requests_session(url: str) -> Iterator[requests.Session]:
+def safe_requests_session(
+    url: str, *, trust_env: bool = True
+) -> Iterator[requests.Session]:
     """
     Yield a ``requests.Session`` whose connections to ``url``'s hostname
     are DNS-pinned. Callers may make multiple requests to that host
-    within the ``with`` block without re-resolving.
+    within the ``with`` block without re-resolving. Set ``trust_env=False``
+    for credential-free callers: no netrc, proxy discovery, or environment
+    CA overrides. TLS verification stays enabled.
     """
     norm_url, pinned_ip = validate_url_strict(url)
     parsed = urlparse(norm_url)
     port = parsed.port or (443 if parsed.scheme == "https" else 80)
     assert parsed.hostname is not None
     session = requests.Session()
+    session.trust_env = trust_env
     # Session hooks apply to every request made on it, including each
     # redirect hop, unless a request passes its own response hooks.
     session.hooks["response"].append(_bound_redirect_body)
-    exempt = _validated_proxy_hosts(norm_url, session.proxies)
+    exempt = _validated_proxy_hosts(norm_url, session.proxies) if trust_env else frozenset()
     with _pin_dns(parsed.hostname, pinned_ip, port, exempt_hosts=exempt):
         try:
             yield session

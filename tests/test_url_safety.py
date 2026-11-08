@@ -945,6 +945,16 @@ def test_safe_requests_session_refuses_a_non_public_proxy(monkeypatch) -> None:
                 pass
 
 
+def test_explicit_untrusted_environment_skips_proxy_discovery(monkeypatch) -> None:
+    monkeypatch.setattr(url_safety, "validate_url_strict", lambda url: (url, "93.184.216.34"))
+    monkeypatch.setattr(url_safety, "_validated_proxy_hosts", lambda *args: pytest.fail("proxy discovery"))
+    resolver = _fake_resolver({"example.com": "93.184.216.34"})
+    with patch.object(url_safety.socket, "getaddrinfo", side_effect=resolver):
+        with url_safety.safe_requests_session("https://example.com/", trust_env=False) as session:
+            assert session.trust_env is False
+            assert session.verify is True
+
+
 # ---------------------------------------------------------------------------
 # CLAUDE_SEO_LOCAL_TARGETS: explicit, top-level-only local allowlist
 # ---------------------------------------------------------------------------
