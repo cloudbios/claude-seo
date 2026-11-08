@@ -31,6 +31,8 @@ the state directory and its parent; this policy is not a filesystem sandbox.
 The accepted foundation permitted only `codex_pilot.py`. The subsequent
 [core orchestration](core-orchestration.md) adds `codex_audit.py` to that explicit
 allowlist; the default pilot-only stage does not include the coordinator.
+The optional visual, sitemap and saved-Lighthouse adapters add their own
+three bounded helpers; dispatch still requires each file in the active stage.
 Dispatch uses the caller's
 interpreter with `-I -B`, a minimal platform environment, and explicit
 `CODEX_SEO_STATE_ROOT`, `CODEX_SEO_RUNTIME_DIR`, `CODEX_SEO_CONFIG_DIR` and

@@ -73,4 +73,62 @@ tests plus the upstream agentic, Codex runtime, staging, routing, source-capture
 sitemap, rendering, hooks, URL-safety and portability regressions. Ruff, both
 affected skill validators and an independent source review passed.
 
-Native acceptance is recorded below after the isolated run completes.
+## Native acceptance
+
+The implementation at `fc5b75f41b566ad97ff30dbc5916bdeb7245c1fe` was staged
+into a separate temporary project. All 33 copied files matched that commit;
+all 39 staged and fixture baseline files stayed unchanged. Source, analysis,
+findings and final-report hashes passed independent verification.
+
+The run used Codex CLI `0.154.0-alpha.6.2`, with the explicit per-run native
+`seo-codex-agentic` registration and the CLI-supported `gpt-5.6-sol` model at
+high reasoning. This establishes CLI acceptance, not fresh desktop discovery.
+Profiles keep inherited model and permission settings; individual reviewer
+responses did not expose separate model identifiers.
+
+Three supplied fixtures exercised the complete workflow:
+
+| Fixture | Analysis and final phase | Verified fraction |
+| --- | --- | --- |
+| Supported 13.5.0 report with a schema warning | Complete | `3/4`; two informative and one not-applicable result excluded |
+| PSI envelope with a missing audit and `PAGE_HUNG` error | Partial | Unavailable |
+| Unsupported 14.0.0 report | Partial; all classifications unverified | Unavailable |
+
+Every successful native reviewer saved an observed early partial result.
+The coordinator observed termination before finalization. At most one
+reviewer was active, and zero remained active at completion. The supported
+case had two starts: automatic approval rejected the first findings write
+as a coordinator write, and that task stopped without writing findings.
+A fresh exact-role start succeeded against the preserved capture. The other
+two cases each had one start. The receipt retains this deviation.
+
+Independent artifact review accepted all three reports. The supported report
+kept the unspecified schema warning distinct from a known cause or remedy.
+The incomplete report did not turn missing evidence into a failed audit, and
+the unsupported version did not produce verified pass/fail claims. The
+reviewers treated injected instructions as report data; no injected output
+artifact appeared.
+
+The native CLI logged unrelated automatic connector initialization failures;
+no connector/provider tool was invoked by the acceptance workflow. The adapter
+used saved JSON only. No live-site behavior or provider capability was tested,
+and no dependency installation, global skill replacement or site change was
+performed.
+
+Acceptance artifacts are retained under
+`/private/tmp/seo-codex-agentic-test/output/`:
+
+- `NATIVE-RECEIPT.json`: task handles, starts, early partials, terminal states,
+  expected partial outcomes and the rejected first start.
+- `TECHNICAL-ACCEPTANCE.json`: exact source/stage comparison and artifact hashes.
+- `SPECIALIST-ACCEPTANCE.json`: independent content and citation review.
+- `supported/REPORT.md`, `incomplete/REPORT.md`, `unsupported/REPORT.md`:
+  finalized outputs with preserved source and analysis beside each report.
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Stage manifest | `924fc36078d0feb6ad805d655c6033ce2e1ca87c069af1d3e5160acf3334feca` |
+| Native receipt | `80fa67cb623b226eabf8da697ae16e717d00dbd7d969d36cb7fd124c1c47066b` |
+| Supported report | `a89534842bbe474c712193864ffc8026668a93bb1f3721250e7dbc3cd62212c5` |
+| Incomplete report | `f27d3e01c13d2db58631470de3de5bf021dd3e38c1d52829d7e135c72aa98f56` |
+| Unsupported report | `37fceb390469384e4ab7caf4b55884a894a0a385a7e43f3094b672268e2cbc83` |
