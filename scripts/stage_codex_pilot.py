@@ -25,6 +25,14 @@ COPY_FILES = (
     ("hooks/validate-schema.py", "hooks/validate-schema.py"),
     ("LICENSE", "LICENSE"),
 )
+AGENT_REGISTRATION = '''[agents.seo-codex-technical]
+description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
+config_file = "agents/seo-codex-technical.toml"
+
+[agents.seo-codex-schema]
+description = "Review the staged one-page pilot's captured structured data and save grounded schema findings."
+config_file = "agents/seo-codex-schema.toml"
+'''
 STAGE_INSTRUCTIONS = """# Bounded Codex SEO pilot
 
 Use only `.agents/skills/seo-codex-pilot/SKILL.md` for this pilot. Do not invoke
@@ -65,6 +73,7 @@ def stage_pilot(
     *,
     source_root: Path = SOURCE_ROOT,
     source_ref: str | None = None,
+    register_agents: bool = False,
 ) -> dict:
     """Copy the explicit allowlist into a new or existing empty directory.
 
@@ -93,7 +102,9 @@ def stage_pilot(
             raise StageError(f"Required pilot source is missing: {source}")
         payloads.append((source, destination, path.read_bytes()))
 
-    instructions = STAGE_INSTRUCTIONS.encode("utf-8")
+    generated = {"AGENTS.md": STAGE_INSTRUCTIONS.encode("utf-8")}
+    if register_agents:
+        generated[".codex/config.toml"] = AGENT_REGISTRATION.encode("utf-8")
     manifest = {
         "format_version": 1,
         "source_baseline_ref": SOURCE_BASELINE_REF,
@@ -105,7 +116,8 @@ def stage_pilot(
             for source, destination, data in payloads
         ],
         "generated_files": [
-            {"destination": "AGENTS.md", "sha256": _digest(instructions), "bytes": len(instructions)}
+            {"destination": destination, "sha256": _digest(data), "bytes": len(data)}
+            for destination, data in generated.items()
         ],
     }
     output.mkdir(exist_ok=True)
@@ -114,8 +126,11 @@ def stage_pilot(
         target.parent.mkdir(parents=True, exist_ok=True)
         with target.open("xb") as handle:
             handle.write(data)
-    with (output / "AGENTS.md").open("xb") as handle:
-        handle.write(instructions)
+    for destination, data in generated.items():
+        target = output / destination
+        target.parent.mkdir(parents=True, exist_ok=True)
+        with target.open("xb") as handle:
+            handle.write(data)
     with (output / "stage-manifest.json").open("x", encoding="utf-8") as handle:
         json.dump(manifest, handle, indent=2, sort_keys=True)
         handle.write("\n")
@@ -126,9 +141,12 @@ def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--output", required=True, type=Path, help="New or empty directory; parent must exist")
     parser.add_argument("--source-ref", help="Optional caller-supplied source revision (not verified by staging)")
+    parser.add_argument("--register-agents", action="store_true",
+                        help="Generate scoped project agent registrations in .codex/config.toml")
     args = parser.parse_args(argv)
     try:
-        manifest = stage_pilot(args.output, source_ref=args.source_ref)
+        manifest = stage_pilot(args.output, source_ref=args.source_ref,
+                               register_agents=args.register_agents)
     except (OSError, StageError) as exc:
         print(f"Pilot staging refused: {exc}", file=sys.stderr)
         return 1

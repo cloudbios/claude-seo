@@ -16,6 +16,31 @@ From this source checkout:
 python3 scripts/stage_codex_pilot.py --output /private/tmp/seo-pilot-project
 ```
 
+For hosts that need explicit role registration, add `--register-agents`. This
+writes only the two role registrations to the staged `.codex/config.toml` and
+includes that file in the provenance manifest. It does not edit the user's
+Codex configuration or choose a model. If the host only loads project settings
+from a trusted Git project, initialize the temporary project with `git init`
+and review its settings through the host's normal trust flow.
+
+On the tested CLI `0.154.0-alpha.6.2`, automatic registration was unavailable in
+the isolated test even with that file present. Explicit per-run registrations
+did expose and run both native roles. For that compatibility path, pass these
+options to `codex exec` (adjust the two absolute paths to your staged project):
+
+```sh
+-c 'agents.seo-codex-technical.description="Pilot technical review"' \
+-c 'agents.seo-codex-technical.config_file="/private/tmp/seo-pilot-project/.codex/agents/seo-codex-technical.toml"' \
+-c 'agents.seo-codex-schema.description="Pilot schema review"' \
+-c 'agents.seo-codex-schema.config_file="/private/tmp/seo-pilot-project/.codex/agents/seo-codex-schema.toml"'
+```
+
+Use a model available to that host and ask the coordinator to use fresh role
+contexts. The tested CLI's first inherited-context spawn failed to locate its
+ephemeral parent; retrying with fresh contexts succeeded. Never substitute a
+generic role and report it as native discovery. Desktop automatic discovery
+still needs its own acceptance run.
+
 The output must be a new or empty directory. The stager copies the pilot skill,
 two role profiles, required source files and license; `stage-manifest.json`
 records the source identities and exact file hashes. It creates no global

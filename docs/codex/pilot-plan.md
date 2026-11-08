@@ -1,6 +1,8 @@
 # Single-page Codex pilot plan
 
-Status: proposed implementation scope; not implemented or executed.
+Status: implemented; an explicit-registration CLI run completed end to end.
+Automatic desktop discovery remains unverified. The original scope below
+remains the acceptance checklist; see [validation results](pilot-validation.md).
 Baseline and findings: [compatibility audit](compatibility-audit.md).
 
 ## Outcome
@@ -140,6 +142,6 @@ accurate findings, safe scope and usable outputs.
 | Packaging/install/update | Accepted core and selected providers | Installs the fork by exact ref, owns only its files, preserves unrelated installs, supports recovery. |
 | Installed-suite replacement | Accepted package and explicit replacement scope | Recoverable cutover with no lost configuration or unverified claimed capabilities. |
 
-The next implementation task is the pilot, not the entire matrix at once. This
-document is a proposal; no implementation, dependency installation, hook trust,
-provider access or installed-suite replacement has been performed.
+The pilot is implemented. The later stages remain proposals: no full-suite
+replacement, hook trust change, provider integration or installed-suite
+migration is authorized by this pilot result.

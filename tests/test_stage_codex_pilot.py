@@ -4,6 +4,7 @@ import hashlib
 import importlib.util
 import json
 import tempfile
+import tomllib
 import unittest
 from pathlib import Path
 from unittest import mock
@@ -72,6 +73,32 @@ class StagePilotTests(unittest.TestCase):
         self.output.mkdir()
         stage.stage_pilot(self.output, source_root=self.source)
         self.assertTrue((self.output / "LICENSE").is_file())
+
+    def test_optional_registration_is_scoped_and_manifested(self):
+        default_output = self.base / "default stage"
+        stage.stage_pilot(default_output, source_root=self.source)
+        manifest = stage.stage_pilot(self.output, source_root=self.source, register_agents=True)
+        default_files = {p.relative_to(default_output).as_posix()
+                         for p in default_output.rglob("*") if p.is_file()}
+        registered_files = {p.relative_to(self.output).as_posix()
+                            for p in self.output.rglob("*") if p.is_file()}
+        self.assertEqual(registered_files - default_files, {".codex/config.toml"})
+        self.assertEqual(default_files - registered_files, set())
+        config_path = self.output / ".codex/config.toml"
+        config = tomllib.loads(config_path.read_text())
+        self.assertEqual(set(config), {"agents"})
+        self.assertEqual(set(config["agents"]), {"seo-codex-technical", "seo-codex-schema"})
+        for name, agent in config["agents"].items():
+            self.assertEqual(set(agent), {"description", "config_file"})
+            self.assertTrue(agent["description"])
+            self.assertEqual(agent["config_file"], f"agents/{name}.toml")
+            self.assertTrue((config_path.parent / agent["config_file"]).is_file())
+        generated = {record["destination"]: record for record in manifest["generated_files"]}
+        self.assertEqual(set(generated), {"AGENTS.md", ".codex/config.toml"})
+        data = config_path.read_bytes()
+        self.assertEqual(generated[".codex/config.toml"]["sha256"], hashlib.sha256(data).hexdigest())
+        self.assertEqual(generated[".codex/config.toml"]["bytes"], len(data))
+        self.assertEqual(manifest["compatibility_status"], "not_verified_by_staging")
 
     def test_refuses_nonempty_directory_without_changes(self):
         self.output.mkdir()
