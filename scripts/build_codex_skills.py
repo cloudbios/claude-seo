@@ -108,6 +108,9 @@ runtime, authorization, evidence, and delegation wherever old provider setup
 examples in the supporting material differ.
 
 Run bundled helpers through `{LAUNCHER} run SCRIPT.py [arguments]`.
+On Windows, replace the Bash launcher in these examples with a supported Python
+3.11–3.14 executable followed by `"__CODEX_SEO_ROOT__/scripts/codex_runtime.py"`;
+keep `--state-root "__CODEX_SEO_STATE_ROOT__"` and all following arguments.
 For an extension helper use `run --extension NAME SCRIPT.py [arguments]`.
 Use `run --allow-write SCRIPT.py [arguments]` only for a specific user-authorized
 mutation. Runtime flags belong after `run` and before the script name.
@@ -244,11 +247,11 @@ def build(destination: Path) -> dict:
         base = Path("skills") / name
         if route in EXTRA_SKILLS:
             source_file = ROOT / "agents" / f"seo-{route}.md"
-            raw = source_file.read_text()
+            raw = source_file.read_text(encoding="utf-8")
             summary = EXTRA_SKILLS[route]
         else:
             source_file = source / "SKILL.md"
-            raw = source_file.read_text()
+            raw = source_file.read_text(encoding="utf-8")
             summary = description(raw, f"Run the {route or 'complete'} SEO workflow.")
             for path in sorted(source.rglob("*")):
                 if path.is_file() and path != source_file:
@@ -292,7 +295,7 @@ The coordinator owns job state and final reports. The detailed report
 dimensions and synthesis methodology remain in `methodology.md`.
 '''
         write(base / "SKILL.md", entry.encode())
-        manifest["skills"].append({"name": name, "source": source_file.relative_to(ROOT).as_posix(), "source_sha256": digest(raw.encode())})
+        manifest["skills"].append({"name": name, "source": source_file.relative_to(ROOT).as_posix(), "source_sha256": digest(source_file.read_bytes())})
         if route:
             manifest["routes"][route] = name
 
@@ -302,7 +305,7 @@ dimensions and synthesis methodology remain in `methodology.md`.
         source = agent_sources.get(route)
         name = f"seo-full-{route}"
         if source:
-            raw = source.read_text()
+            raw = source.read_text(encoding="utf-8")
             _, body = split_frontmatter(raw)
             summary = description(raw, f"Execute the {route} specialist workflow.")
         else:
@@ -344,7 +347,11 @@ material. Native entrypoint contracts govern their execution.
 '''
     write("ATTRIBUTION.md", notice.encode())
     manifest["files"].sort(key=lambda item: item["destination"])
-    (destination / "source-manifest.json").write_text(json.dumps(manifest, indent=2, ensure_ascii=False) + "\n")
+    (destination / "source-manifest.json").write_text(
+        json.dumps(manifest, indent=2, ensure_ascii=False) + "\n",
+        encoding="utf-8",
+        newline="\n",
+    )
     return manifest
 
 
@@ -363,8 +370,8 @@ def main() -> int:
         generated.mkdir()
         manifest = build(generated)
         if args.check:
-            expected = {str(p.relative_to(generated)): p.read_bytes() for p in generated.rglob("*") if p.is_file()}
-            actual = {str(p.relative_to(output)): p.read_bytes() for p in output.rglob("*") if p.is_file()}
+            expected = {p.relative_to(generated).as_posix(): p.read_bytes() for p in generated.rglob("*") if p.is_file()}
+            actual = {p.relative_to(output).as_posix(): p.read_bytes() for p in output.rglob("*") if p.is_file()}
             if expected != actual:
                 changed = sorted(k for k in expected.keys() | actual.keys() if expected.get(k) != actual.get(k))
                 print(json.dumps({"status": "outdated", "files": changed}, indent=2))

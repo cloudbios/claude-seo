@@ -27,13 +27,13 @@ def test_full_distribution_preserves_sources_and_native_profiles():
         manifest = BUILDER.build(output)
         assert REQUIRED_ROUTES <= manifest["routes"].keys()
         assert len(manifest["extensions"]) == 9
-        assert manifest == json.loads((output / "source-manifest.json").read_text())
+        assert manifest == json.loads((output / "source-manifest.json").read_text(encoding="utf-8"))
         for entry in manifest["files"]:
             assert BUILDER.digest((output / entry["destination"]).read_bytes()) == entry["sha256"]
             if "source" in entry:
                 assert BUILDER.digest((ROOT / entry["source"]).read_bytes()) == entry["source_sha256"]
         for agent in manifest["agents"]:
-            data = tomllib.loads((output / "agents" / (agent["name"] + ".toml")).read_text())
+            data = tomllib.loads((output / "agents" / (agent["name"] + ".toml")).read_text(encoding="utf-8"))
             assert set(data) == {"name", "description", "developer_instructions"}
             assert data["name"] == agent["name"]
             assert agent["skill"] in data["developer_instructions"]
@@ -52,13 +52,13 @@ def test_full_distribution_retains_flow_prompts_and_adapts_runtime():
             p.relative_to(target) for p in target.rglob("*") if p.is_file()
         }
         for path in source.rglob("*.md"):
-            original = path.read_text()
-            adapted = (target / path.relative_to(source)).read_text()
+            original = path.read_text(encoding="utf-8")
+            adapted = (target / path.relative_to(source)).read_text(encoding="utf-8")
             if "CC BY 4.0" in original:
                 assert "CC BY 4.0" in adapted
                 assert "github.com/AgriciDaniel/flow" in adapted
         for path in (output / "skills").rglob("*.md"):
-            text = path.read_text()
+            text = path.read_text(encoding="utf-8")
             assert "${CLAUDE_PLUGIN_ROOT}" not in text
             assert '"$HOME/.claude/' not in text
             assert "seo-codex-codex" not in text

@@ -120,7 +120,7 @@ def test_transient_robots_failure_can_resume_and_preserves_failed_evidence(tmp_p
     assert audit.crawl(root)['status'] == 'complete'
     state = audit.load(root)
     assert 'resources/robots-attempt-001.json' in state['files']
-    assert json.loads((root / 'resources/robots-attempt-001.json').read_text())['status_code'] == 503
+    assert json.loads((root / 'resources/robots-attempt-001.json').read_text(encoding="utf-8"))['status_code'] == 503
 
 
 def test_cannot_finalize_invented_capture_citation(planned):
@@ -233,7 +233,7 @@ def test_unavailable_specialist_is_terminal_and_report_stays_unmeasured(planned)
     finish(root, 'performance', 'unavailable', limitations=['No field metrics are configured.'])
     report = audit.report(root)
     assert report['status'] == 'partial'
-    data = json.loads((root / 'audit-data.json').read_text())
+    data = json.loads((root / 'audit-data.json').read_text(encoding="utf-8"))
     assert data['summary']['health_score'] is None
     assert {c['name']: c['status'] for c in data['categories']} == {'technical': 'complete', 'performance': 'unavailable'}
     assert all(c['score'] is None for c in data['categories'])
@@ -260,7 +260,7 @@ def test_complete_audit_requires_all_specialists_finished_and_all_pages_availabl
     audit.crawl(root)
     finish(root, 'technical')
     assert audit.report(root)['status'] == 'complete'
-    data = json.loads((root / 'audit-data.json').read_text())
+    data = json.loads((root / 'audit-data.json').read_text(encoding="utf-8"))
     assert data['summary']['fixture_mode'] is True
     assert data['summary']['health_score'] is None
 
@@ -316,8 +316,8 @@ def test_raw_and_rendered_representations_are_frozen_separately(planned):
     audit.crawl(root)
     state = audit.load(root)
     prefix = state['pages'][0]['path']
-    assert (root / prefix / 'raw.html').read_text() == '<div id="root"></div>'
-    assert (root / prefix / 'rendered.html').read_text() == '<h1>Rendered content</h1>'
+    assert (root / prefix / 'raw.html').read_text(encoding="utf-8") == '<div id="root"></div>'
+    assert (root / prefix / 'rendered.html').read_text(encoding="utf-8") == '<h1>Rendered content</h1>'
     assert f'{prefix}/raw.html' in state['files']
     assert f'{prefix}/rendered.html' in state['files']
 
@@ -363,5 +363,5 @@ def test_empty_raw_response_is_not_replaced_by_rendered_dom(planned):
     root = planned({SITE: {"raw_content": "", "content": "<html><title>Rendered</title></html>", "mode_used": "rendered"}})
     audit.crawl(root)
     page = audit.load(root)["pages"][0]
-    assert (root / page["path"] / "raw.html").read_text() == ""
-    assert "Rendered" in (root / page["path"] / "rendered.html").read_text()
+    assert (root / page["path"] / "raw.html").read_text(encoding="utf-8") == ""
+    assert "Rendered" in (root / page["path"] / "rendered.html").read_text(encoding="utf-8")

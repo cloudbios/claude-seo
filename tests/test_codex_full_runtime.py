@@ -110,7 +110,7 @@ def test_setup_rolls_back_previous_runtime_on_manifest_failure(tmp_path, monkeyp
     monkeypatch.setattr(runtime, 'status', lambda _: (_ for _ in ()).throw(OSError('manifest failure')))
     with pytest.raises(OSError):
         runtime.setup(state, SimpleNamespace(skip_browser=True))
-    assert (final / 'preserved').read_text() == 'old'
+    assert (final / 'preserved').read_text(encoding="utf-8") == 'old'
     assert not (state['runtime'] / '.setup.lock').exists()
 
 

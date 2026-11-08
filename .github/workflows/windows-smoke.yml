@@ -25,6 +25,9 @@ on:
 permissions:
   contents: read
 
+env:
+  CLAUDE_SEO_REPO_URL: https://github.com/${{ github.repository }}.git
+
 jobs:
   validate-ref:
     name: Validate installer source ref
@@ -51,7 +54,7 @@ jobs:
             exit 1
           fi
           git ls-remote --exit-code --refs \
-            https://github.com/AgriciDaniel/claude-seo.git \
+            "$CLAUDE_SEO_REPO_URL" \
             "refs/heads/$TARGET_REF" "refs/tags/$TARGET_REF" >/dev/null
           printf 'ref=%s\n' "$TARGET_REF" >> "$GITHUB_OUTPUT"
 

@@ -13,6 +13,9 @@ runtime, authorization, evidence, and delegation wherever old provider setup
 examples in the supporting material differ.
 
 Run bundled helpers through `"__CODEX_SEO_ROOT__/scripts/codex-seo" --state-root "__CODEX_SEO_STATE_ROOT__" run SCRIPT.py [arguments]`.
+On Windows, replace the Bash launcher in these examples with a supported Python
+3.11–3.14 executable followed by `"__CODEX_SEO_ROOT__/scripts/codex_runtime.py"`;
+keep `--state-root "__CODEX_SEO_STATE_ROOT__"` and all following arguments.
 For an extension helper use `run --extension NAME SCRIPT.py [arguments]`.
 Use `run --allow-write SCRIPT.py [arguments]` only for a specific user-authorized
 mutation. Runtime flags belong after `run` and before the script name.

@@ -127,13 +127,19 @@ jobs:
     if: always()
     steps:
       - name: Emit summary
+        env:
+          AUDIT_REASON: ${{ inputs.reason }}
+          MANIFEST_RESULT: ${{ needs.manifest.result }}
+          SECURITY_RESULT: ${{ needs.security.result }}
+          FULL_PYTEST_RESULT: ${{ needs.full_pytest.result }}
+          SECRET_SCAN_RESULT: ${{ needs.secret_scan.result }}
         run: |
-          echo "## v2 audit summary" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "- Reason: ${{ inputs.reason }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Manifest: ${{ needs.manifest.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Security: ${{ needs.security.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Full pytest: ${{ needs.full_pytest.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "- Secret scan: ${{ needs.secret_scan.result }}" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
-          echo "All four must report 'success' before tagging." >> $GITHUB_STEP_SUMMARY
+          {
+            printf '%s\n' '## v2 audit summary' ''
+            printf '%s\n' "- Reason: $AUDIT_REASON"
+            printf '%s\n' "- Manifest: $MANIFEST_RESULT"
+            printf '%s\n' "- Security: $SECURITY_RESULT"
+            printf '%s\n' "- Full pytest: $FULL_PYTEST_RESULT"
+            printf '%s\n' "- Secret scan: $SECRET_SCAN_RESULT" ''
+            printf '%s\n' "All four must report 'success' before tagging."
+          } >> "$GITHUB_STEP_SUMMARY"

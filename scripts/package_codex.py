@@ -37,7 +37,7 @@ def build(output: Path, source_ref: str | None = None, source: Path = ROOT) -> d
         if ancestor.is_symlink():
             raise ValueError('Output ancestors must not be symlinks')
     full = source / 'adapters/codex/full'
-    upstream = json.loads((full / 'source-manifest.json').read_text())
+    upstream = json.loads((full / 'source-manifest.json').read_text(encoding="utf-8"))
     origins = {item['destination']: item for item in upstream['files']}
     tracked_result = subprocess.run(['git', '-C', str(source), 'ls-files', '-z'], capture_output=True, check=True)
     tracked = set(tracked_result.stdout.decode().split('\0'))
@@ -76,7 +76,8 @@ def build(output: Path, source_ref: str | None = None, source: Path = ROOT) -> d
         add(path, relative, origin)
     add(full / 'source-manifest.json', 'source-manifest.json')
     for path in sorted((source / 'scripts').glob('*.py')):
-        add(path, f'scripts/{path.name}')
+        if path.relative_to(source).as_posix() in tracked:
+            add(path, f'scripts/{path.name}')
     for name in ['scripts/codex-seo', 'hooks/validate-schema.py', 'requirements.txt', 'pyproject.toml', 'LICENSE', 'CONTRIBUTORS.md', 'CITATION.cff', 'plugin.json', 'docs/codex/INSTALL.md', 'docs/codex/FULL-PORT.md']:
         add(source / name, name)
     if source_ref is None:
@@ -93,7 +94,7 @@ def build(output: Path, source_ref: str | None = None, source: Path = ROOT) -> d
             target.write_bytes(data)
             target.chmod(0o755 if destination == 'scripts/codex-seo' else 0o644)
             manifest['files'].append({'path': destination, 'source': origin.get('source', path.relative_to(source).as_posix()), 'source_sha256': origin.get('source_sha256', origin.get('sha256', digest(data))), 'sha256': digest(data), 'transformed': origin.get('source_sha256', digest(data)) != digest(data), 'mode': target.stat().st_mode & 0o777})
-        (temporary / 'package-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n')
+        (temporary / 'package-manifest.json').write_text(json.dumps(manifest, indent=2) + '\n', encoding="utf-8")
         os.rename(temporary, output)
     except BaseException:
         shutil.rmtree(temporary)

@@ -95,7 +95,7 @@ def previous_install(project: Path) -> dict | None:
     path = safe_path(project, MANIFEST)
     if not path.exists():
         return None
-    manifest = json.loads(path.read_text())
+    manifest = json.loads(path.read_text(encoding="utf-8"))
     if manifest.get('schema_version') != 1 or manifest.get('name') != 'seo-codex':
         raise ValueError('Unsupported installation manifest')
     for entry in manifest['files']:
@@ -140,7 +140,7 @@ def substitute_paths(content: bytes, suffix: str, replacements: dict[str, str]) 
 
 def package_files(package: Path, project: Path, data_dir: Path) -> tuple[dict, dict]:
     manifest_path = safe_path(package, 'package-manifest.json')
-    manifest = json.loads(manifest_path.read_text())
+    manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
     if manifest.get('schema_version') != 1 or manifest.get('name') != 'seo-codex':
         raise ValueError('Unsupported package manifest')
     installed_root = project / BASE / 'package'
@@ -236,7 +236,7 @@ def install(package: Path, project: Path, data_dir: Path | None = None) -> dict:
         if conflicts:
             raise ValueError('Conflicting edits or unowned files: ' + ', '.join(sorted(conflicts)))
         config = safe_path(project, CONFIG)
-        current = config.read_text() if config.exists() else ''
+        current = config.read_text(encoding="utf-8") if config.exists() else ''
         remaining = config_without_owned_block(current, previous)
         block = agent_block(files, project)
         updated_config = remaining + ('\n' if remaining and not remaining.endswith('\n') else '') + block
@@ -267,7 +267,7 @@ def uninstall(project: Path) -> dict:
         config = safe_path(project, CONFIG)
         config_conflict = False
         try:
-            current = config.read_text() if config.exists() else ''
+            current = config.read_text(encoding="utf-8") if config.exists() else ''
             remaining = config_without_owned_block(current, previous)
             tomllib.loads(remaining)
             changes[CONFIG.as_posix()] = (remaining.encode(), config.stat().st_mode & 0o777) if config.exists() else None

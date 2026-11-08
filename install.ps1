@@ -139,7 +139,8 @@ try {
 # Set paths
 $SkillDir = "$env:USERPROFILE\.claude\skills\seo"
 $AgentDir = "$env:USERPROFILE\.claude\agents"
-$RepoUrl = "https://github.com/AgriciDaniel/claude-seo"
+# Explicit override supports forks and CI while preserving the upstream default.
+$RepoUrl = if ($env:CLAUDE_SEO_REPO_URL) { $env:CLAUDE_SEO_REPO_URL } else { "https://github.com/AgriciDaniel/claude-seo" }
 # Pin to a specific release tag to prevent silent updates from main.
 # This default MUST be bumped on every release. CI guard
 # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
@@ -160,7 +161,7 @@ $keepTemp = ($env:CLAUDE_SEO_KEEP_TEMP -eq '1')
 
 try {
     Write-Host ">> Downloading Claude SEO ($RepoTag)..." -ForegroundColor Yellow
-    $clone = Invoke-External -Exe 'git' -Args @('clone','--depth','1','--branch',$RepoTag,$RepoUrl,$TempDir) -Quiet
+    $clone = Invoke-External -Exe 'git' -Args @('clone','--depth','1','--branch',$RepoTag,'--',$RepoUrl,$TempDir) -Quiet
     if ($clone.ExitCode -ne 0) {
         throw "git clone failed. Output:`n$($clone.Output -join "`n")"
     }

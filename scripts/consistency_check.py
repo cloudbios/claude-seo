@@ -136,16 +136,12 @@ def check_script_refs(files, texts):
     errors = []
     mentioned = set()
     for f in texts:
-        if f.startswith(("research/", ".github/")) or f == "CHANGELOG.md" or f in SELF_DOC:
+        # Tests construct temporary package layouts with deliberately nonexistent
+        # script names. Check shipped docs/code rather than those fixture paths.
+        if f.startswith(("research/", ".github/", "tests/")) or f == "CHANGELOG.md" or f in SELF_DOC:
             continue
         ext_root = extension_root(f)
         for m in sorted(set(pat.findall(read(f)))):
-            if f == "tests/test_codex_pilot.py" and m == "source.py":
-                # The staged-provenance test creates this file in its temp tree.
-                continue
-            if f == "tests/test_codex_package.py" and m == "tool.py":
-                # The package rejection test creates an untracked dummy tool.
-                continue
             mentioned.add(m)
             candidates = [f"scripts/{m}"]
             if ext_root:

@@ -54,21 +54,21 @@ class InstallerTests(unittest.TestCase):
     def test_install_upgrade_uninstall_preserves_unrelated(self):
         installer.install(self.package, self.project)
         skill = self.project / '.agents/skills/seo-codex/SKILL.md'
-        self.assertNotIn('__CODEX_', skill.read_text())
-        self.assertIn(str(self.project / '.codex/seo-codex/package'), skill.read_text())
+        self.assertNotIn('__CODEX_', skill.read_text(encoding="utf-8"))
+        self.assertIn(str(self.project / '.codex/seo-codex/package'), skill.read_text(encoding="utf-8"))
         config = self.project / '.codex/config.toml'
-        self.assertTrue(config.read_text().startswith(self.original))
+        self.assertTrue(config.read_text(encoding="utf-8").startswith(self.original))
         package_at(self.package, 'version two')
         installer.install(self.package, self.project)
-        self.assertIn('version two', skill.read_text())
-        config.write_text(config.read_text() + '\n[profiles.custom]\nmodel = "another"\n')
+        self.assertIn('version two', skill.read_text(encoding="utf-8"))
+        config.write_text(config.read_text(encoding="utf-8") + '\n[profiles.custom]\nmodel = "another"\n')
         (self.project / '.codex/seo-codex/data').mkdir()
         (self.project / '.codex/seo-codex/data/user.txt').write_text('keep')
         result = installer.uninstall(self.project)
         self.assertEqual(result['status'], 'uninstalled')
         self.assertFalse(skill.exists())
-        self.assertIn('[profiles.custom]', config.read_text())
-        self.assertIn('[agents.unrelated]', config.read_text())
+        self.assertIn('[profiles.custom]', config.read_text(encoding="utf-8"))
+        self.assertIn('[agents.unrelated]', config.read_text(encoding="utf-8"))
         self.assertTrue((self.project / '.codex/seo-codex/data/user.txt').exists())
         self.assertTrue(list((self.project / '.codex/seo-codex/backups').glob('*.json')))
 
@@ -80,7 +80,7 @@ class InstallerTests(unittest.TestCase):
             installer.install(self.package, self.project)
         result = installer.uninstall(self.project)
         self.assertEqual(result['status'], 'conflicts-preserved')
-        self.assertEqual(skill.read_text(), 'user modification')
+        self.assertEqual(skill.read_text(encoding="utf-8"), 'user modification')
         self.assertIn('.agents/skills/seo-codex/SKILL.md', result['conflicts'])
 
     def test_tampered_package_is_rejected_before_install(self):
@@ -95,10 +95,10 @@ class InstallerTests(unittest.TestCase):
         skill.write_text('existing user skill')
         with self.assertRaisesRegex(ValueError, 'unowned files'):
             installer.install(self.package, self.project)
-        self.assertEqual(skill.read_text(), 'existing user skill')
+        self.assertEqual(skill.read_text(encoding="utf-8"), 'existing user skill')
 
     def test_invalid_manifest_and_symlinks_are_rejected(self):
-        manifest = json.loads((self.package / 'package-manifest.json').read_text())
+        manifest = json.loads((self.package / 'package-manifest.json').read_text(encoding="utf-8"))
         manifest['files'][0]['path'] = '../outside'
         (self.package / 'package-manifest.json').write_text(json.dumps(manifest))
         with self.assertRaisesRegex(ValueError, 'Unsafe relative path'):
@@ -125,28 +125,40 @@ class InstallerTests(unittest.TestCase):
         markdown = installer.substitute_paths(b'Root __CODEX_SEO_ROOT__', '.md', replacements)
         self.assertEqual(markdown.decode(), 'Root ' + windows_path)
 
+    def test_utf8_configuration_and_skill_text_round_trip(self):
+        text = '# 搜索 · café\n' + self.original
+        config = self.project / '.codex/config.toml'
+        config.write_text(text, encoding='utf-8')
+        package_at(self.package, '搜索 · café')
+        installer.install(self.package, self.project)
+        skill = self.project / '.agents/skills/seo-codex/SKILL.md'
+        self.assertIn('搜索 · café', skill.read_text(encoding='utf-8'))
+        self.assertTrue(config.read_text(encoding='utf-8').startswith(text))
+        installer.uninstall(self.project)
+        self.assertEqual(config.read_text(encoding='utf-8'), text)
+
     def test_changed_config_blocks_upgrade_and_is_preserved(self):
         installer.install(self.package, self.project)
         config = self.project / '.codex/config.toml'
-        changed = config.read_text().replace('description = "Test"', 'description = "My edits"')
+        changed = config.read_text(encoding="utf-8").replace('description = "Test"', 'description = "My edits"')
         config.write_text(changed)
         with self.assertRaisesRegex(ValueError, 'registrations were edited'):
             installer.install(self.package, self.project)
         result = installer.uninstall(self.project)
         self.assertIn('.codex/config.toml', result['conflicts'])
-        self.assertEqual(config.read_text(), changed)
+        self.assertEqual(config.read_text(encoding="utf-8"), changed)
 
     def test_upgrade_removes_retired_owned_files_only(self):
         installer.install(self.package, self.project)
         keep = self.project / '.agents/skills/seo-codex/user-notes.md'
         keep.write_text('keep user notes')
         manifest_path = self.package / 'package-manifest.json'
-        manifest = json.loads(manifest_path.read_text())
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
         manifest['files'] = [entry for entry in manifest['files'] if entry['path'] != 'LICENSE']
         manifest_path.write_text(json.dumps(manifest))
         installer.install(self.package, self.project)
         self.assertFalse((self.project / '.codex/seo-codex/package/LICENSE').exists())
-        self.assertEqual(keep.read_text(), 'keep user notes')
+        self.assertEqual(keep.read_text(encoding="utf-8"), 'keep user notes')
 
     def test_failure_rolls_back_changed_files(self):
         target = self.project / 'one.txt'
@@ -161,7 +173,7 @@ class InstallerTests(unittest.TestCase):
         with patch.object(installer, 'atomic_write', side_effect=failing):
             with self.assertRaisesRegex(OSError, 'simulated failure'):
                 installer.apply_changes(self.project, {'one.txt': (b'changed', 0o644), 'two.txt': (b'new', 0o644)})
-        self.assertEqual(target.read_text(), 'original')
+        self.assertEqual(target.read_text(encoding="utf-8"), 'original')
         self.assertFalse((self.project / 'two.txt').exists())
 
 
@@ -182,6 +194,7 @@ class PackageTests(unittest.TestCase):
                 file.write_text('fixture ' + name)
             subprocess.run(['git', 'init', '-q', str(source)], check=True)
             subprocess.run(['git', '-C', str(source), 'add', '.'], check=True)
+            (source / 'scripts/private.py').write_text('private data excluded')
             (source / 'skills/private-credentials.json').write_text('secret excluded')
             (source / 'extensions/banana/.env').write_text('secret excluded')
             full = source / 'adapters/codex/full'
@@ -198,6 +211,7 @@ class PackageTests(unittest.TestCase):
             self.assertIn('source-skills/seo-flow/references/notice.md', actual)
             self.assertIn('extensions/banana/scripts/test.py', actual)
             self.assertIn('skills/seo-codex/SKILL.md', actual)
+            self.assertNotIn('scripts/private.py', actual)
             self.assertFalse(any('secret' in name or '.env' in name for name in actual))
             self.assertEqual(manifest['source_ref'], 'fixture-ref')
             for entry in manifest['files']:

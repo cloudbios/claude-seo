@@ -1114,7 +1114,7 @@
     },
     {
       "destination": "skills/seo-codex-agentic/SKILL.md",
-      "sha256": "adf064d272d4f8ab23036a42a106a9ef1e2d3a87b92b9cee13eed39266cd304b"
+      "sha256": "e1246bbcc479db05a7f68320926dbefd986b9bed244e897e5db1a46a8f779f6f"
     },
     {
       "destination": "skills/seo-codex-agentic/methodology.md",
@@ -1160,7 +1160,7 @@
     },
     {
       "destination": "skills/seo-codex-ahrefs/SKILL.md",
-      "sha256": "f87c1036ddf7227058271593bc7eadb349108717fd6126ab89dcfbde57b054d4"
+      "sha256": "0dbf59dff88cac2e2b8cf4897cc175853496f2aad3607a38da868019ac644a89"
     },
     {
       "destination": "skills/seo-codex-ahrefs/methodology.md",
@@ -1176,7 +1176,7 @@
     },
     {
       "destination": "skills/seo-codex-audit/SKILL.md",
-      "sha256": "ee827190a52faf8d9f7aa28b2a9049d0a1fd33f6681d2eccbc5be9417a8fd53d"
+      "sha256": "fbe1ab8f5575c3a217c5f4299d6643905a58b2d280cb8aa6cf75cdc5c1829b96"
     },
     {
       "destination": "skills/seo-codex-audit/methodology.md",
@@ -1192,7 +1192,7 @@
     },
     {
       "destination": "skills/seo-codex-backlinks/SKILL.md",
-      "sha256": "220c145ca469d2c54f69f2543fb0bdcb26ae9b95d5321a23d4c13494354b2f6b"
+      "sha256": "4f2c3d08644c0f7257a06a78e5b0f80e8fe73fb04b499b375bf7adc21979b733"
     },
     {
       "destination": "skills/seo-codex-backlinks/methodology.md",
@@ -1202,7 +1202,7 @@
     },
     {
       "destination": "skills/seo-codex-bing/SKILL.md",
-      "sha256": "838f09f409a70f91f6cc759f7cba876daeb6568351381e2fe94d623bcd58dc4a"
+      "sha256": "57c255e8e309d3fa6e472a650a9505e15b6673f93e7387638c7d001656fda2c1"
     },
     {
       "destination": "skills/seo-codex-bing/methodology.md",
@@ -1212,7 +1212,7 @@
     },
     {
       "destination": "skills/seo-codex-cluster/SKILL.md",
-      "sha256": "947e9025c53f5e70f793908b579a38d1cd17aece7d1669b71599f2204a0fe4f1"
+      "sha256": "d90809939e8d327d526ac1560e761167237ee733e23c4ac9cf71582bc8dd3c0f"
     },
     {
       "destination": "skills/seo-codex-cluster/methodology.md",
@@ -1252,7 +1252,7 @@
     },
     {
       "destination": "skills/seo-codex-competitor-pages/SKILL.md",
-      "sha256": "9c3e2b36852f617b9e9126e30428bdf95813f16a127571694b1f741f8a2d8835"
+      "sha256": "8ead971720ded03a38ca60726d3bc6175ba719ac46f1ee353f2c34406426cd97"
     },
     {
       "destination": "skills/seo-codex-competitor-pages/methodology.md",
@@ -1268,7 +1268,7 @@
     },
     {
       "destination": "skills/seo-codex-content-brief/SKILL.md",
-      "sha256": "c2ed06b5edf8fd381b69df090e066565b48eb7c2a835b28adf9eaf3f5ec2bf06"
+      "sha256": "17c4bc421075bed26dc3e4b62edd47d4744de757285853cd09f537dbf4391c22"
     },
     {
       "destination": "skills/seo-codex-content-brief/methodology.md",
@@ -1302,7 +1302,7 @@
     },
     {
       "destination": "skills/seo-codex-content/SKILL.md",
-      "sha256": "68171be503e4aa0de374a866e165b93bceb1631c25f1e2b9cc48e0933524bb1e"
+      "sha256": "dcede0fd64eb230f74a9437d713a9b68afb947cecb1d090f659a47149230a7f8"
     },
     {
       "destination": "skills/seo-codex-content/methodology.md",
@@ -1318,7 +1318,7 @@
     },
     {
       "destination": "skills/seo-codex-dataforseo/SKILL.md",
-      "sha256": "536dee498d8ca84b66ce3bf461bd655ea113f0b916120bd8d2f3e150fda2618f"
+      "sha256": "0dc1b485853e5da06ecede7818513f717bb55c5ed335c3015a3d6686c509fcd5"
     },
     {
       "destination": "skills/seo-codex-dataforseo/methodology.md",
@@ -1340,7 +1340,7 @@
     },
     {
       "destination": "skills/seo-codex-drift/SKILL.md",
-      "sha256": "a6d2955f053bbc49aeb097404254c3600bf3b7f5606123bcedba0d203c79936b"
+      "sha256": "25e06ac6c80752d6daeb78b1b72845d29c932855e1e9e6fa9ab72965daee0d5f"
     },
     {
       "destination": "skills/seo-codex-drift/methodology.md",
@@ -1356,7 +1356,7 @@
     },
     {
       "destination": "skills/seo-codex-ecommerce/SKILL.md",
-      "sha256": "91902bf17be57012548b5e2d9dd04135fbd71c0ba414da340d8324e6cbf0e883"
+      "sha256": "db6e3a9a7dd6f846001941fa5b2ff58f49546c46e94820480d76c652e802d6fa"
     },
     {
       "destination": "skills/seo-codex-ecommerce/methodology.md",
@@ -1384,7 +1384,7 @@
     },
     {
       "destination": "skills/seo-codex-firecrawl/SKILL.md",
-      "sha256": "0c9e9e4ed3991cf3fa49ee0458d3cc08991905a81da6238bfc0ac23af315f7d8"
+      "sha256": "9bd19233c474bddd8b3cb4db96ece91ab4fe514b7dd96f0a6caec6f743f09c50"
     },
     {
       "destination": "skills/seo-codex-firecrawl/methodology.md",
@@ -1394,7 +1394,7 @@
     },
     {
       "destination": "skills/seo-codex-flow/SKILL.md",
-      "sha256": "5555994114b05aef053c1ae7abd88eb3c5d6ccac875f1c9a61865064d6e6ddae"
+      "sha256": "030b1b6fca1cf9377c8b6cbf531b5c687c4a6bc0d070e922e5aaba7230e32121"
     },
     {
       "destination": "skills/seo-codex-flow/methodology.md",
@@ -1680,7 +1680,7 @@
     },
     {
       "destination": "skills/seo-codex-geo/SKILL.md",
-      "sha256": "4606eef90e688a90605f8304e89849b47c3dff831b314612ed69a1b044e1c449"
+      "sha256": "75f1d2c8672cfaad6e8e813689a20876fe6e33c49d25fb13c3121fc05cdd6d62"
     },
     {
       "destination": "skills/seo-codex-geo/methodology.md",
@@ -1708,7 +1708,7 @@
     },
     {
       "destination": "skills/seo-codex-google/SKILL.md",
-      "sha256": "d9b584642d9af5be2efc676c3995879e9147f46cd7926415d1cfe7a3efd74f87"
+      "sha256": "b2c026a3f3c895fee3cc271d24e8d320981fc6a5dbf16164c05385b45793350f"
     },
     {
       "destination": "skills/seo-codex-google/assets/templates/cwv-audit-report.md",
@@ -1814,7 +1814,7 @@
     },
     {
       "destination": "skills/seo-codex-hreflang/SKILL.md",
-      "sha256": "22dd7016ef045681aad2a086acdc6fdd7d2a5965782a00dd929193c6a5f98eee"
+      "sha256": "8797a26bfc4135ec5209d021d8dc6ef8c5c2b9ec35bab134039211fbce0c6335"
     },
     {
       "destination": "skills/seo-codex-hreflang/methodology.md",
@@ -1854,7 +1854,7 @@
     },
     {
       "destination": "skills/seo-codex-image-gen/SKILL.md",
-      "sha256": "d3824a75673723e89da7f05de7634011ca194d8d1cc44faca388aad3a2e318f9"
+      "sha256": "3d4ce128173fb4c6608d56adbde6762d8673c44f00b0915471076120e23a9c7e"
     },
     {
       "destination": "skills/seo-codex-image-gen/methodology.md",
@@ -1870,7 +1870,7 @@
     },
     {
       "destination": "skills/seo-codex-images/SKILL.md",
-      "sha256": "9c0afb45c29c63ac5b47151cc8ec4ab614da5ef37a896e227689bc1ed9cc04d1"
+      "sha256": "8024bcd8346412857ecca875d8ccbfc7851123c14b4f34df69169f29d477eb3f"
     },
     {
       "destination": "skills/seo-codex-images/methodology.md",
@@ -1886,7 +1886,7 @@
     },
     {
       "destination": "skills/seo-codex-local/SKILL.md",
-      "sha256": "9fda3d8c32607eeb6bf0bea538b159da20b7386d01fced55efd0c16fd81cc06f"
+      "sha256": "f64d926b34ca364a97cbc7324bb0e0805ec61ff99d12e410d4c494ed9aaa3195"
     },
     {
       "destination": "skills/seo-codex-local/methodology.md",
@@ -1902,7 +1902,7 @@
     },
     {
       "destination": "skills/seo-codex-maps/SKILL.md",
-      "sha256": "510172e1673c2fc925aded8564740bb27906fc0a31c623dc20f74d8ce4c6d63c"
+      "sha256": "5f364d6d7e759beb5bd7c0b98a2ffcd57545abec042028a5073e2541feb45830"
     },
     {
       "destination": "skills/seo-codex-maps/methodology.md",
@@ -1912,7 +1912,7 @@
     },
     {
       "destination": "skills/seo-codex-matomo/SKILL.md",
-      "sha256": "1886aeedba713806be6ff516e5cb081b956b08c49850767c80e8cf0257d26c13"
+      "sha256": "0984c8305b6f10ad74f9bb8c7b7bc8f22ddcc4b06481bb633df2555a41e5690b"
     },
     {
       "destination": "skills/seo-codex-matomo/methodology.md",
@@ -1928,7 +1928,7 @@
     },
     {
       "destination": "skills/seo-codex-page/SKILL.md",
-      "sha256": "ccaa9d2eff7dbaa97be2da0a23ea9e4c3813674b77d4cb3039c5dc3e565e9842"
+      "sha256": "73046e3eca34a6b3aaa941df18544d435e02298d072a276fb1b9df24b624d7c0"
     },
     {
       "destination": "skills/seo-codex-page/methodology.md",
@@ -1938,7 +1938,7 @@
     },
     {
       "destination": "skills/seo-codex-performance/SKILL.md",
-      "sha256": "0e14f473e66dda36f66c06c060e5e3bd6e0b9181e16d3f24042206553935b8b2"
+      "sha256": "3f92a7ad9c515a746d746605da05912c3762d9feed1b3cc5dc415c57d4840c12"
     },
     {
       "destination": "skills/seo-codex-performance/methodology.md",
@@ -1954,7 +1954,7 @@
     },
     {
       "destination": "skills/seo-codex-plan/SKILL.md",
-      "sha256": "253096dde445706c9ad4f0eff61c2c71551ab957b57dbbb799a92132375a8c66"
+      "sha256": "45ed1a83046a3a66edbc3b1551e1605c054f78adabb7f5f333be159327e84b8e"
     },
     {
       "destination": "skills/seo-codex-plan/assets/agency.md",
@@ -2000,7 +2000,7 @@
     },
     {
       "destination": "skills/seo-codex-profound/SKILL.md",
-      "sha256": "7647804c47f271b0abaa90367f406aed1b495c572c0c2b43459139e8c953c391"
+      "sha256": "78d24c3dad7bafbe7f04fdf64d90fa7ceb5c36098883260c11d7d385bdf18339"
     },
     {
       "destination": "skills/seo-codex-profound/methodology.md",
@@ -2016,7 +2016,7 @@
     },
     {
       "destination": "skills/seo-codex-programmatic/SKILL.md",
-      "sha256": "013e2cb7525ccf2ce1096d2a52204fc6f05ce08fbbfe118add21143d749d9e6f"
+      "sha256": "c6af61505d54cb3597e1363d3fc8c946379427e20fe5922d3b9d0fe6a8634bf2"
     },
     {
       "destination": "skills/seo-codex-programmatic/methodology.md",
@@ -2032,7 +2032,7 @@
     },
     {
       "destination": "skills/seo-codex-schema/SKILL.md",
-      "sha256": "00e41ef7036a1eff4e94de6b86e0e7ce2f4161e806704579a3aaad6ab33874f6"
+      "sha256": "293368c48392e849c51dbb77a9d09f7d48627345ef7806e5e5b9b3f1b1e83e43"
     },
     {
       "destination": "skills/seo-codex-schema/methodology.md",
@@ -2048,7 +2048,7 @@
     },
     {
       "destination": "skills/seo-codex-seranking/SKILL.md",
-      "sha256": "ceaa7654be3afdec8d71c6a110992bf8837e4663fe3fff77c5b17105ebb5efea"
+      "sha256": "d5fbe7dc678217cf7ddb52d1021dcd552522be76ec6e13783c901c2a048cdce1"
     },
     {
       "destination": "skills/seo-codex-seranking/methodology.md",
@@ -2064,7 +2064,7 @@
     },
     {
       "destination": "skills/seo-codex-sitemap/SKILL.md",
-      "sha256": "6f287dfa16bc77f66c94d6f6bc22cb15466d5ad277db379359a35953e7a08c6e"
+      "sha256": "1779d9acd952ad10c9c31f823fdbba307b52ddef1dc21641a067858271509472"
     },
     {
       "destination": "skills/seo-codex-sitemap/methodology.md",
@@ -2074,7 +2074,7 @@
     },
     {
       "destination": "skills/seo-codex-sxo/SKILL.md",
-      "sha256": "ac71a6e4f87a70f43474fb8a77d8305995171e7934ef82a1019a46915e25ebce"
+      "sha256": "917374ba9a650b7c5d51b79bdae3da8c53d19cd976c2548e360974130c1b09bf"
     },
     {
       "destination": "skills/seo-codex-sxo/methodology.md",
@@ -2114,7 +2114,7 @@
     },
     {
       "destination": "skills/seo-codex-technical/SKILL.md",
-      "sha256": "4cf74b5e9f22936878b777e396ab6fd053b87ef2f56c87b7ba7119f5782c73ec"
+      "sha256": "8fb4debc5b0933c1d5fc7a127e4b07b3e4e81c2bf3686ac1d93a57d566c20b54"
     },
     {
       "destination": "skills/seo-codex-technical/methodology.md",
@@ -2130,7 +2130,7 @@
     },
     {
       "destination": "skills/seo-codex-unlighthouse/SKILL.md",
-      "sha256": "ac675da23c11f28edd651ffd3239c730bf99fb086ed52504d3a3c79047cf7d35"
+      "sha256": "4a0be1beb977e6bdd800c52b9fdd6a045312ab758363de47905c18c6b9cf677f"
     },
     {
       "destination": "skills/seo-codex-unlighthouse/methodology.md",
@@ -2140,7 +2140,7 @@
     },
     {
       "destination": "skills/seo-codex-visual/SKILL.md",
-      "sha256": "db48260192156127dc0d3c845b76a19e5b49e050028b22dcece4dd4fef264467"
+      "sha256": "0e90767dc9e33aeb3ffd5c6c81b06ea0f241ec7dae399a4542e08a2fc335ef75"
     },
     {
       "destination": "skills/seo-codex-visual/methodology.md",
@@ -2156,7 +2156,7 @@
     },
     {
       "destination": "skills/seo-codex/SKILL.md",
-      "sha256": "8ce9bcdf4c7d4d9201f27ecc9da06bb85d9c14bc190de60680b69285469a7925"
+      "sha256": "69948cc8a331b63cc926e37bc3a1cec1fbe8f219b5913a17b83fac8f13fe710c"
     },
     {
       "destination": "skills/seo-codex/methodology.md",

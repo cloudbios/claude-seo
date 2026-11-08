@@ -7,7 +7,8 @@ set -euo pipefail
 main() {
     SKILL_DIR="${HOME}/.claude/skills/seo"
     AGENT_DIR="${HOME}/.claude/agents"
-    REPO_URL="https://github.com/AgriciDaniel/claude-seo"
+    # Explicit override supports forks and CI while preserving the upstream default.
+    REPO_URL="${CLAUDE_SEO_REPO_URL:-https://github.com/AgriciDaniel/claude-seo}"
     # Pin to a specific release tag to prevent silent updates from main.
     # This default MUST be bumped on every release. CI guard
     # (tests/test_manifest_consistency.py) enforces this matches plugin.json.
@@ -34,7 +35,7 @@ main() {
     trap cleanup EXIT
 
     echo "↓ Downloading Claude SEO (${REPO_TAG})..."
-    git clone --depth 1 --branch "${REPO_TAG}" "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
+    git clone --depth 1 --branch "${REPO_TAG}" -- "${REPO_URL}" "${TEMP_DIR}/claude-seo" 2>/dev/null
 
     # Copy skill files
     echo "→ Installing skill files..."
