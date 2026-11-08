@@ -5,6 +5,9 @@ It adds explicit prepared-runtime boundaries and Codex patch-event handling.
 It does not enable the remaining SEO skills, providers, credential migration,
 global installation or automatic hook trust.
 
+Status: the bounded runtime and live project-hook test passed on November 8,
+2026. The verified source and host limits are recorded below.
+
 ## Prepared runtime
 
 Invoke the runtime with a prepared Python 3.11–3.14 interpreter, explicit
@@ -109,9 +112,44 @@ before importing a provider or installing anything. Path/credential isolation
 checks used temporary fixtures and synthetic environment values, not user
 credentials.
 
-Live trusted-hook delivery remains unverified until the staged hook is reviewed
-and exercised through the normal host flow. The earlier desktop pilot result
-continues to cover skill discovery, native delegation and page-audit artifacts.
+### Live desktop acceptance
 
-After this foundation is accepted, the next batch can expand native routing
+The user ran `FOUNDATION-TEST.md` in a fresh local desktop chat named
+`Run foundation test` and explicitly confirmed reviewing and trusting the exact
+project hook through the normal Codex UI. No trust bypass or trust-store edit
+was used. The UI state could not be independently inspected.
+
+The staged source was `66e86d016eeee58de216eaea77ea3e4514158d6d`.
+The coordinator independently compared all ten copied source files with that
+reviewed checkout and verified the three generated files against the manifest.
+All 13 files remained unchanged after the test.
+
+| Evidence | Result |
+| --- | --- |
+| Stage-manifest SHA-256 | `18615c8ee9401d1b32da3a2ee898d031555a826c93e1f14d958a2f35423efe61` |
+| Hook-definition SHA-256 | `7393914ef3cda1177d7ed946d35ac2af0d7eae6c62d09c08529bd95bd7dd5974` |
+| Prepared runtime | Python 3.12.14 on macOS 26.6.2 arm64; `doctor --json` exited 0, ready |
+| Native two-file add | Both the missing-context warning and retired-type finding arrived in the same hook error |
+| Post-edit state | Both intentionally invalid fixture files remained on disk |
+| Native two-file correction | Successful tool result with no schema diagnostics |
+| Final fixture SHA-256, each file | `a062b21d538b56822a7b1b77f60a4a6fd341f0c7455df887f13b404476b4fa3f` |
+
+The original model-visible tool outputs were checked in the test chat's local
+transcript: the first native `apply_patch` returned a hook error containing
+both expected findings, and the correction returned successfully. The
+validator was not invoked manually to establish native delivery. An
+independent review accepted the receipt, source identities and fixture state.
+
+The host did not expose raw hook stdin, a numeric hook exit code, the exact
+running app build, or a separate success receipt from the silent clean hook.
+Numeric exit behavior is covered by the offline tests; it is not claimed as
+directly observed in the desktop result. The live result establishes native
+feedback delivery for this project, not all host versions or Windows support.
+
+The detailed local receipt is `output/FOUNDATION-ACCEPTANCE.json` in the staged
+test project. Raw session logs are not committed. This normalized record is
+the durable public evidence. The earlier desktop pilot result continues to
+cover skill discovery, native delegation and page-audit artifacts separately.
+
+With this foundation accepted, the next batch can expand native routing
 and bounded orchestration. Provider and installer acceptance remain separate.
