@@ -49,7 +49,7 @@ prepared-runtime doctor, then let the skill orchestrate the audit:
 ```
 
 The core stage dispatches `codex_pilot.py` and `codex_audit.py`. Optional
-stages add `codex_visual.py`, `codex_sitemap.py`, `codex_agentic.py` and `codex_brief.py`;
+stages add `codex_visual.py`, `codex_sitemap.py`, `codex_agentic.py`, `codex_brief.py` and `codex_plan.py`;
 each helper must be explicitly present in the stage before dispatch.
 Provider modules, installers and legacy credential discovery remain
 unavailable. The host's sandbox and approvals still apply. The

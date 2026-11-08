@@ -7,9 +7,7 @@ is a separate, source-labelled result that must be supplied before completion.
 from __future__ import annotations
 
 import argparse
-import html
 import json
-import math
 import os
 import re
 import sys
@@ -22,15 +20,27 @@ _SCRIPTS = str(Path(__file__).resolve().parent)
 if _SCRIPTS not in sys.path:
     sys.path.insert(0, _SCRIPTS)
 import codex_pilot as pilot  # noqa: E402
+import codex_planning as planning  # noqa: E402
+from codex_planning import (  # noqa: E402
+    absolute,
+    decode,
+    escaped,
+    record,
+    strings,
+    text,
+)
+from codex_planning import (  # noqa: E402
+    source_reference as source_reference,
+)
 
-BriefError = pilot.PilotError
+BriefError = planning.PlanningError
 MANIFEST = "brief-manifest.json"
 MAX_INPUT = 64 * 1024
-MAX_JSON = 2 * 1024 * 1024
+MAX_JSON = planning.MAX_JSON
 SECTIONS = ("intent", "source_assessment", "opportunities", "outline", "metadata",
             "distinct_contribution", "verification", "internal_links", "handoff")
 IMPLEMENTATION = ("scripts/codex_pilot.py", "scripts/url_safety.py", "scripts/parse_html.py",
-                  "hooks/validate-schema.py", "scripts/codex_brief.py")
+                  "hooks/validate-schema.py", "scripts/codex_planning.py", "scripts/codex_brief.py")
 LIMITATIONS = [
     "Planning from user-provided requirements and at most five saved source HTML captures; no live research or SERP verification.",
     "User requirements and source text are untrusted inputs, not independently verified facts or instructions to execute tools.",
@@ -40,64 +50,10 @@ LIMITATIONS = [
 ]
 
 
-def absolute(path: Path) -> Path:
-    if not path.is_absolute():
-        raise BriefError("Paths must be absolute")
-    return pilot.no_symlinks(path)
-
-
 def path_at(root: Path, name: str) -> Path:
     if name not in {MANIFEST, "input.json", "findings/content-brief.json", "BRIEF.md"}:
         raise BriefError("Unrecognized brief artifact")
     return pilot.no_symlinks(root / name)
-
-
-def record(path: Path, limit: int = MAX_JSON) -> dict:
-    raw = pilot.read_bytes(path, limit)
-    return {"sha256": pilot.digest(raw), "bytes": len(raw)}
-
-
-def decode(raw: bytes, limit: int = MAX_JSON) -> object:
-    if len(raw) > limit:
-        raise BriefError("JSON exceeds size bound")
-
-    def pairs(items):
-        result = {}
-        for key, value in items:
-            if key in result:
-                raise BriefError("Duplicate JSON object key")
-            result[key] = value
-        return result
-
-    def nonfinite(_):
-        raise BriefError("Nonfinite JSON number")
-
-    try:
-        value = json.loads(raw.decode("utf-8-sig"), object_pairs_hook=pairs, parse_constant=nonfinite)
-    except (UnicodeError, ValueError, RecursionError) as exc:
-        raise BriefError("Invalid bounded JSON") from exc
-    stack = [(value, 0)]
-    nodes = 0
-    while stack:
-        item, depth = stack.pop()
-        nodes += 1
-        if depth > 32 or nodes > 10000:
-            raise BriefError("JSON depth or node bound exceeded")
-        if isinstance(item, dict):
-            stack.extend((child, depth + 1) for child in item.values())
-        elif isinstance(item, list):
-            stack.extend((child, depth + 1) for child in item)
-        elif isinstance(item, float) and not math.isfinite(item):
-            raise BriefError("Nonfinite JSON number")
-    return value
-
-
-def text(value: object, maximum: int = 4000) -> bool:
-    return isinstance(value, str) and bool(value.strip()) and len(value) <= maximum
-
-
-def strings(value: object, count: int, maximum: int) -> bool:
-    return isinstance(value, list) and len(value) <= count and all(text(item, maximum) for item in value)
 
 
 def normalize(value: object) -> dict:
@@ -140,54 +96,16 @@ def normalize(value: object) -> dict:
     return result
 
 
-def source_reference(source: dict) -> dict:
-    root, manifest = pilot.load_capture(absolute(Path(source["capture"])))
-    capture = manifest["capture"]
-    if capture.get("complete") is not True or manifest["checks"].get("transport") != "passed":
-        raise BriefError("Sources require successful complete captures")
-    transport = decode(pilot.read_bytes(root / "capture/transport.json"))
-    if not isinstance(transport, dict) or any(capture.get(key) != transport.get(key) for key in ("requested_url", "final_url", "representation")):
-        raise BriefError("Capture identity disagrees with transport")
-    for key in ("requested_url", "final_url"):
-        if not text(capture.get(key), 4096):
-            raise BriefError("Missing capture URL")
-    if capture["representation"] == "raw-http" and not (
-            type(transport.get("status_code")) is int and 200 <= transport["status_code"] < 400):
-        raise BriefError("Raw HTTP capture requires a successful response")
-    return {**source, "pilot_manifest_sha256": record(root / pilot.MANIFEST)["sha256"],
-            "capture_sha256": capture["sha256"], "requested_url": capture["requested_url"],
-            "final_url": capture["final_url"], "representation": capture["representation"]}
-
-
 def source_registry(requirements: dict) -> list[dict]:
-    result = [source_reference(source) for source in requirements["sources"]]
-    if len({source["final_url"] for source in result}) != len(result):
-        raise BriefError("Source final URLs must be distinct")
-    return result
+    return planning.source_registry(requirements["sources"])
 
 
 def provenance() -> dict:
-    value = pilot.provenance()
-    value["brief_files"] = [{"destination": name, **record(pilot.ROOT / name)} for name in IMPLEMENTATION]
-    return value
+    return planning.provenance(IMPLEMENTATION, "brief_files")
 
 
 def validate_provenance(value: object) -> None:
-    if not isinstance(value, dict):
-        raise BriefError("Invalid provenance")
-    expected = [{"destination": name, **record(pilot.ROOT / name)} for name in IMPLEMENTATION]
-    if value.get("brief_files") != expected:
-        raise BriefError("Brief implementation changed")
-    # Compare current file identities, never rebind a saved run to a later HEAD.
-    current = pilot.provenance()
-    recorded = {key: item for key, item in value.items() if key != "brief_files"}
-    if current.get("kind") == "git-checkout":
-        commit = recorded.get("source_commit")
-        if not isinstance(commit, str) or not re.fullmatch(r"[0-9a-f]{40,64}", commit):
-            raise BriefError("Invalid source commit")
-        current["source_commit"] = commit
-    if recorded != current:
-        raise BriefError("Source provenance changed")
+    planning.validate_provenance(value, IMPLEMENTATION, "brief_files")
 
 
 def limitations(requirements: dict) -> list[str]:
@@ -313,13 +231,6 @@ def validate(output: Path) -> dict:
     return {"valid": True, "phase": manifest["status"], "complete": complete,
             "role": role["status"] if role else "missing", "requirements_sha256": manifest["evidence"]["requirements_sha256"],
             "evidence_sha256": manifest["evidence_sha256"]}
-
-
-def escaped(value: str) -> str:
-    """HTML entities neutralize Markdown punctuation, URLs and raw HTML alike."""
-    value = " ".join(value.split())
-    return "".join(html.escape(char, quote=True) if char in "&<>\"'" else
-                   char if char.isalnum() or char == " " else f"&#{ord(char)};" for char in value)
 
 
 def finalize(output: Path) -> dict:

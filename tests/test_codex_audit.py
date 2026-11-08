@@ -107,7 +107,7 @@ def test_content_brief_route_requires_complete_payload_without_research(tmp_path
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
             patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
         assert audit.route("content-brief")["status"] == "unavailable"
-        paths = ("scripts/codex_brief.py", ".codex/agents/seo-codex-content-brief.toml",
+        paths = ("scripts/codex_brief.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-content-brief.toml",
                  ".agents/skills/seo-codex-content-brief/SKILL.md",
                  ".agents/skills/seo-codex-content-brief/references/review.md",
                  ".agents/skills/seo-codex-content-brief/LICENSE.txt")
@@ -122,6 +122,28 @@ def test_content_brief_route_requires_complete_payload_without_research(tmp_path
         (tmp_path / paths[-1]).unlink()
         assert audit.route("content-brief")["status"] == "unavailable"
         assert "content-brief" not in audit.SUPPORTED_ROLES
+
+
+def test_strategy_route_requires_complete_payload_without_research(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("plan")["status"] == "unavailable"
+        paths = ("scripts/codex_plan.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-plan.toml",
+                 ".agents/skills/seo-codex-plan/SKILL.md",
+                 ".agents/skills/seo-codex-plan/references/review.md",
+                 ".agents/skills/seo-codex-plan/references/industries.md")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("plan") == {
+            "status": "available", "workflow": "plan", "skill": "seo-codex-plan",
+            "focus": "supplied-evidence-strategy"
+        }
+        (tmp_path / paths[1]).unlink()
+        assert audit.route("plan")["status"] == "unavailable"
+        assert "plan" not in audit.SUPPORTED_ROLES
 
 
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):

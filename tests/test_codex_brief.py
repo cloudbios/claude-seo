@@ -268,15 +268,16 @@ def test_noncanonical_requirements_rejected(tmp_path):
         brief.validate(output)
 
 
-def test_provenance_change_rejected(tmp_path, monkeypatch):
+@pytest.mark.parametrize("changed_file", ["codex_brief.py", "codex_planning.py"])
+def test_provenance_change_rejected(tmp_path, monkeypatch, changed_file):
     _, output, _ = prepare(tmp_path)
     original = brief.record
     def changed(path, limit=brief.MAX_JSON):
         result = original(path, limit)
-        if path.name == "codex_brief.py":
+        if path.name == changed_file:
             result["sha256"] = "0" * 64
         return result
-    monkeypatch.setattr(brief, "record", changed)
+    monkeypatch.setattr(brief.planning, "record", changed)
     with pytest.raises(brief.BriefError, match="implementation changed"):
         brief.validate(output)
 

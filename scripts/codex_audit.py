@@ -70,7 +70,7 @@ def route(workflow: str) -> dict:
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional saved Lighthouse adapter is not staged; no browser, PSI request or provider was started."}
     if workflow == "content-brief":
-        required = ("scripts/codex_brief.py", ".codex/agents/seo-codex-content-brief.toml",
+        required = ("scripts/codex_brief.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-content-brief.toml",
                     ".agents/skills/seo-codex-content-brief/SKILL.md",
                     ".agents/skills/seo-codex-content-brief/references/review.md",
                     ".agents/skills/seo-codex-content-brief/LICENSE.txt")
@@ -79,6 +79,16 @@ def route(workflow: str) -> dict:
                     "focus": "supplied-evidence-planning"}
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional content-brief adapter is not staged; no research or authoring was started."}
+    if workflow == "plan":
+        required = ("scripts/codex_plan.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-plan.toml",
+                    ".agents/skills/seo-codex-plan/SKILL.md",
+                    ".agents/skills/seo-codex-plan/references/review.md",
+                    ".agents/skills/seo-codex-plan/references/industries.md")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-plan",
+                    "focus": "supplied-evidence-strategy"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional strategy planner is not staged; no research or planning was started."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}
