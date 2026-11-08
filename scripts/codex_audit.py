@@ -89,6 +89,16 @@ def route(workflow: str) -> dict:
                     "focus": "supplied-evidence-strategy"}
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional strategy planner is not staged; no research or planning was started."}
+    if workflow == "drift":
+        required = ("scripts/codex_drift.py", "scripts/codex_planning.py", ".codex/agents/seo-codex-drift.toml",
+                    ".agents/skills/seo-codex-drift/SKILL.md",
+                    ".agents/skills/seo-codex-drift/references/review.md",
+                    ".agents/skills/seo-codex-drift/references/fields.md")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-drift",
+                    "focus": "saved-capture-comparison"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional saved-capture drift adapter is not staged; no fetch or monitoring was started."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}

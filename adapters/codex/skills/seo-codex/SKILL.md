@@ -1,6 +1,6 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual, sitemap or saved Lighthouse analysis, content briefs, strategy plans, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual, sitemap or saved Lighthouse analysis, content briefs, strategy plans, saved-capture comparisons, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
@@ -36,6 +36,7 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `agentic` | When the optional stage is installed, read `../seo-codex-agentic/SKILL.md`; standalone interpretation of a supplied Lighthouse/PSI JSON report. It does not run Lighthouse or add a role to the sampled audit. |
 | `content-brief` | When the optional stage is installed, read `../seo-codex-content-brief/SKILL.md`; standalone new/improve page planning from supplied requirements and up to five existing verified captures. It does not add a role to the sampled audit. |
 | `plan` | When the optional stage is installed, read `../seo-codex-plan/SKILL.md`; a strategy, roadmap, calendar, site structure and measurement plan using supplied resources and up to five captures. |
+| `drift` | When the optional stage is installed, read `../seo-codex-drift/SKILL.md`; compare two existing captures of the same recorded requested URL and interpret observed changes. No live monitoring or history database is included. |
 | `doctor` | Run the prepared runtime's `doctor --json` with the same `--host codex` and explicit `--state-root`. |
 
 Use `page` for one-page requests and `audit` for an explicit page sample or
@@ -58,7 +59,7 @@ without telling the user how its coverage differs.
 
 This includes unported `geo`,
 `programmatic`, `competitor-pages`, `maps`,
-`google`, `backlinks`, `cluster`, `sxo`, `drift`, `ecommerce`,
+`google`, `backlinks`, `cluster`, `sxo`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence
 of missing credentials. Never inspect credentials, install dependencies,
 enable providers, submit URLs, generate images or modify the target site to

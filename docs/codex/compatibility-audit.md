@@ -237,7 +237,8 @@ in `CLAUDE.md` does not grant access or publishing authority for this fork.
    [local and hreflang source reviews](local-hreflang.md), followed by
    [saved Lighthouse report review](agentic-report.md) and
    [content brief planning](content-brief.md), then
-   [SEO strategy planning](strategy-plan.md).
+   [SEO strategy planning](strategy-plan.md) and
+   [saved-capture change review](source-drift.md).
 4. Accept optional integrations one by one, including cost and mutation controls.
 5. Build ownership-aware installation, packaging and upstream-sync procedures.
 6. Only after acceptance, propose replacing the installed legacy suite. Keep a

@@ -71,8 +71,8 @@ license and attribution to AgriciDaniel and contributors are preserved.
 
 The strategy stage copies 34 files and registers seven profiles. Staging both
 strategy and content briefs copies 39 files and registers eight profiles;
-their shared `codex_planning.py` helper is copied once. All five optional
-workflows together copy 54 files and register eleven profiles. The core stage
+their shared `codex_planning.py` helper is copied once. All six optional
+workflows together copy 59 files and register twelve profiles. The core stage
 remains 28 files with six page-review roles; the original pilot remains eight.
 
 The shared helper contains JSON, path, evidence, provenance and escaping
