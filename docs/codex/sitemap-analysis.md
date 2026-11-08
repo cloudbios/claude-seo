@@ -79,7 +79,60 @@ Google has accepted or indexed the listed pages.
 
 ## Validation
 
-Automated checks, independent review and native acceptance results will be
-recorded here after completion. The secure parser configuration was checked
-against [lxml's parsing documentation](https://lxml.de/parsing.html) and
-[untrusted-XML guidance](https://lxml.de/FAQ.html) through Context7.
+The implementation at `861c700351d92a7960ac94330fb94312927e6f2d` passed
+608 selected tests. The existing live-network renderer test was deselected;
+this batch's sitemap tests are offline. Ruff, the skill validator and native
+profile checks passed. Independent review reproduced and verified fixes for
+malformed ports, timezone offsets, UTF-16 parsing, comment-tail text, missing
+provenance and altered JSON types. Root namespace declarations are scanned
+once to avoid repeated work across large documents.
+
+The secure parser configuration was checked against
+[lxml's parsing documentation](https://lxml.de/parsing.html) and
+[untrusted-XML guidance](https://lxml.de/FAQ.html) through Context7. Acceptance
+used prepared Python 3.12.14 and lxml 6.1.3. All 27 staged source files were
+compared byte-for-byte with the implementation commit.
+
+The supplied test sitemap contains seven entries, including a duplicate,
+invalid locations, an invalid calendar date, a future date and an image
+extension. Its bounded analysis completed while correctly reporting invalid
+locations. Two existing fixture captures demonstrated present/absent exact
+membership without becoming HTTP or indexation observations. A separate index
+left page membership unavailable and did not follow its child. A UTF-16
+DOCTYPE fixture was retained as partial, with invalid XML and no parsed entries.
+
+Native acceptance used Codex CLI `0.154.0-alpha.6.2`, per-run registration of
+the staged sitemap profile, and `gpt-5.6-sol` with high reasoning supported by
+that installed CLI. The profile itself retains inherited model and permission
+settings. This verifies a CLI run, not an additional fresh desktop-discovery
+test.
+
+The sitemap route returned available. One native `seo-codex-sitemap` task,
+`/root/native_sitemap_review`, ran in a fresh context. The coordinator observed
+an early partial result, then the actual completed state before finalization.
+The finalized report and subsequent validation were complete. Independent
+review accepted all eight findings and seven limitations: invalid locations,
+duplicates, dates, cross-host scope, ignored tags, extension limits and sample
+membership were grounded in the saved evidence. The XML instruction comment
+was treated as data. Source XML and both page captures remained unchanged.
+
+Acceptance artifacts are retained under
+`/private/tmp/seo-codex-sitemap-test/output/` on the test host:
+
+- `NATIVE-RECEIPT.json`: role, early result, terminal state and final validation.
+- `TECHNICAL-ACCEPTANCE.json`: source/stage/artifact identities and edge cases.
+- `SITEMAP-ACCEPTANCE.json`: independent findings and report review.
+- `sitemap/REPORT.md`: complete bounded report.
+- `index/` and `unsafe/`: index non-traversal and rejected XML evidence.
+
+| Evidence | SHA-256 |
+|---|---|
+| Stage manifest | `faba908b2d51130cf5f1a5debe37f298743d2ec8c0582fa335d27ecbe876bcdc` |
+| Source XML (833 bytes) | `63cc858d15b2a5567897c3daa6f59e17f7d9f1134f9a5d387b81755b9d1df7e3` |
+| Analysis evidence identity | `b56583d0cf6a4444479d2836634ce2317896afcff16448a3f36d16e537f508b6` |
+| Final report | `e4a07689098dc9dc73ed49862cb4bc243866086e6aefc02b06db8ae54ff2df11` |
+
+No sitemap/page request, provider enablement, dependency installation, global
+configuration change or site edit occurred during acceptance. Live discovery,
+full crawling, extension-specific validation and generation remain separate
+workflows.
