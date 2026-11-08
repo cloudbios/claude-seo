@@ -32,9 +32,9 @@ SEO coverage, ranking improvements, every provider, or every host surface.
   gaps. Do not assume hook-only compatibility variables expand inside skill prose.
 - Do not invoke the existing install/uninstall scripts or trust a new hook silently.
 
-## Candidate file ownership
+## Implemented file ownership
 
-These are proposed paths, not files changed by the audit:
+The audit proposed these responsibilities; the pilot now implements them in:
 
 | Files | Responsibility |
 | --- | --- |
@@ -42,9 +42,9 @@ These are proposed paths, not files changed by the audit:
 | `adapters/codex/skills/seo-codex-pilot/SKILL.md` | One-page intake, bounded capture, two-role delegation, review and artifact contract. |
 | `adapters/codex/agents/seo-codex-technical.toml` | Technical specialist instructions using native Codex fields. |
 | `adapters/codex/agents/seo-codex-schema.toml` | Schema specialist instructions using native Codex fields. |
-| `scripts/stage_codex_pilot.py` | Only if needed: stdlib staging of the small adapter and required resources into an empty output directory; no installation or auth discovery. |
-| `scripts/validate_pilot_evidence.py` | Only the missing deterministic artifact/schema checks after checking what existing validators can safely reuse. |
-| `tests/test_codex_pilot_*.py` and small public-safe fixtures | Path/discovery assembly, evidence shape, malformed input, partial results and no unintended state access. |
+| `scripts/stage_codex_pilot.py` | Stdlib staging of the small adapter and required resources into an empty output directory; no installation or auth discovery. |
+| `scripts/codex_pilot.py` | Runtime checks, bounded capture, reused parser/schema checks, deterministic artifact validation and report finalization. Replaces the proposed separate `validate_pilot_evidence.py`. |
+| `tests/test_codex_pilot.py`, `tests/test_stage_codex_pilot.py` and public-safe inline fixtures | Staging assembly, evidence shape, malformed input, partial results and no unintended state access. Native discovery is checked separately in a real host. |
 
 Keep setup, hook migration, provider adapters and global installers in separate
 changes. Do not add an API service, hosted backend, SDK orchestration layer, or a
@@ -81,7 +81,7 @@ One supplied output directory contains:
   `passed`, `failed`, `skipped`, or `unavailable` states and reasons.
 - `capture/`: raw HTML, optional rendered HTML, bounded parsed data and full
   JSON-LD input. Store only the public page material needed for this run.
-- `findings/technical.md` and `findings/schema.md`: evidence-linked partial/final
+- `findings/technical.json` and `findings/schema.json`: evidence-linked partial/final
   findings and each role's completion status.
 - `REPORT.md`: a concise combined report with prioritized findings, limitations
   and proposed verification. No invented overall site score.
