@@ -4,6 +4,12 @@
   26 sub-skills and 19 specialist agents. MIT licensed.
 -->
 
+> **Codex adaptation in this fork:** the one-page pilot and runtime foundation
+> are verified. An optional bounded adapter adds routing and sampled technical/schema
+> audits of 1–5 explicit pages, with a two-session CLI resume test. See [Codex adapter](adapters/codex/README.md) and
+> [core orchestration](docs/codex/core-orchestration.md) for scope and validation.
+> The upstream installation instructions below still describe Claude Code.
+
 <img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />
 
 <h1 align="center">Claude SEO</h1>

@@ -90,7 +90,7 @@ claude-seo/
     seo-flow.md                  # FLOW framework integration
   hooks/                           # Quality gate hooks
     hooks.json                   # PostToolUse schema validation
-  scripts/                         # 63 Python execution scripts
+  scripts/                         # 64 Python execution scripts
     google_auth.py               # Credential management (OAuth, SA, API key, 4-tier detection)
     backlinks_auth.py            # Backlink API credential management (Moz, Bing)
     moz_api.py                   # Moz Link Explorer API (DA/PA, spam, domains, anchors)
@@ -152,6 +152,7 @@ claude-seo/
     sitemap_discovery.py         # Sitemap discovery (robots.txt, common paths)
     runtime.py                   # Managed runtime behind the claude-seo launcher
     codex_pilot.py               # Isolated single-page Codex evidence workflow
+    codex_audit.py               # Bounded Codex page-sample coordinator and router
     stage_codex_pilot.py         # Stage scoped Codex skill/roles without installation
     state_paths.py              # Explicit Codex runtime/config/cache path policy
   schema/                          # Schema.org JSON-LD templates

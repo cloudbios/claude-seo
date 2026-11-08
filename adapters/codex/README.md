@@ -1,4 +1,24 @@
-# Isolated Codex SEO pilot
+# Codex SEO adapter
+
+The optional core stage adds the `seo-codex` router and `seo-codex-audit` sampled
+audit to the verified one-page pilot. It covers 1–5 explicitly supplied pages,
+reuses the two existing native roles and limits active review jobs to two.
+Other upstream skills and provider integrations remain unavailable through it.
+
+```sh
+python3 scripts/stage_codex_pilot.py --output /private/tmp/seo-core-project \
+  --register-agents --core-orchestration
+```
+
+This includes the prepared-runtime foundation. Supply a prepared interpreter
+and an absolute dedicated state root when invoking the router or sampled audit.
+Use `$seo-codex` for routing or `$seo-codex-audit` for the explicit sample.
+Natural-language/skill invocation does not register the upstream `/seo` command.
+See [core orchestration](../../docs/codex/core-orchestration.md) for usage,
+recovery, evidence and validation limits. The same host-discovery considerations
+below apply. The default stage remains the original one-page pilot.
+
+## One-page pilot
 
 This adapter audits one page through two native Codex roles using the same
 captured evidence. It leaves the existing SEO installation and provider
