@@ -1,6 +1,6 @@
 ---
 name: seo-codex
-description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional visual, sitemap or saved Lighthouse analysis, content briefs, strategy plans, saved-capture comparisons, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
+description: Route staged Codex SEO requests to source-based page reviews, sampled audits of up to five explicit pages, optional GEO, visual, sitemap or saved Lighthouse analysis, content briefs, strategy plans, saved-capture comparisons, and prepared-runtime diagnosis. Use when the workflow is unclear or the user names this adapter.
 ---
 
 # Codex SEO router
@@ -30,6 +30,7 @@ pages, spawn agents, diagnose the runtime or grant permission for those actions.
 | `images` | Read `../seo-codex-images/SKILL.md`; image-markup review of 1–5 explicit pages using only the images role. |
 | `local` | Read `../seo-codex-local/SKILL.md`; source-based business identity and location declarations using only the local role. |
 | `hreflang` | Read `../seo-codex-hreflang/SKILL.md`; one-page language and alternate-URL declarations using only the hreflang role. |
+| `geo` | When the optional stage is available, read `../seo-codex-geo/SKILL.md`; review saved answer passages, attribution and declared preview controls using the GEO role. |
 | `audit` | Read `../seo-codex-audit/SKILL.md`; sampled audit of 1–5 explicit pages, selecting all six roles unless the user requests narrower coverage. |
 | `visual` | When the optional stage is installed, read `../seo-codex-visual/SKILL.md`; separate offline viewport review of an existing verified pilot capture. It does not add a role to the sampled audit. |
 | `sitemap` | When the optional stage is installed, read `../seo-codex-sitemap/SKILL.md`; standalone review of supplied XML and up to five existing verified page captures. It does not add a role to the sampled audit. |
@@ -57,8 +58,7 @@ unavailable result. Explain the stated limitation and offer only a supported
 workflow that addresses the user's intent. Do not invoke a nearby capability
 without telling the user how its coverage differs.
 
-This includes unported `geo`,
-`programmatic`, `competitor-pages`, `maps`,
+This includes unported `programmatic`, `competitor-pages`, `maps`,
 `google`, `backlinks`, `cluster`, `sxo`, `ecommerce`,
 `flow`, provider extensions and `setup`. Missing implementation is not evidence
 of missing credentials. Never inspect credentials, install dependencies,

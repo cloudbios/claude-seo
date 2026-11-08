@@ -1,6 +1,6 @@
 ---
 name: seo-codex-audit
-description: Coordinate a sampled SEO audit of one to five explicit pages using shared captures, six selectable native source-review roles and recoverable local artifacts. Use for this bounded audit or its resume; excludes full-site crawling and provider-backed analysis.
+description: Coordinate a sampled SEO audit of one to five explicit pages using shared captures, six core native review roles, an optional GEO role and recoverable local artifacts. Use for this bounded audit or its resume; excludes full-site crawling and provider-backed analysis.
 ---
 
 # Sampled Codex SEO audit
@@ -22,6 +22,11 @@ for a general sampled audit; preserve narrower coverage explicitly requested
 by the user or the calling focused skill. For content, images, local and
 hreflang, read `../seo-codex-<role>/references/review.md` and include the
 corresponding methodology in that role's brief.
+When GEO is explicitly requested and its optional stage passes the route
+check, add `geo` to the selected roles and use `seo-codex-geo` with
+`../seo-codex-geo/references/review.md`. GEO reviews answer passages,
+attribution and declared preview controls in saved source. Keep the six-role
+selection above for general audits.
 If a required role is unavailable, preserve partial artifacts and report that
 gap. Do not substitute a generic worker, another skill or an inline review.
 
@@ -44,6 +49,9 @@ an explicit sample, explain the coverage and obtain that sample first.
    its selected role names to `--roles`. Always pass `--roles` for new plans in
    this workflow: the engine's omitted-flag default remains technical/schema
    for backward compatibility. The separate one-page pilot retains two roles.
+   A GEO-only review uses `--roles geo`. A combined review lists its selected
+   core roles and `geo` explicitly. The complete optional GEO payload and its
+   staged provenance must validate before a new GEO plan can be created.
    Use `--max-workers 1` when sequential execution is required. The output's
    parent must exist; preserve unrelated files and prior audit directories.
 2. Run `capture --output <audit-directory>`. Captures run sequentially; the

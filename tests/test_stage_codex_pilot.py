@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES + stage.DRIFT_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES + stage.PLANNING_FILES + stage.PLAN_FILES + stage.DRIFT_FILES + stage.GEO_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -385,6 +385,107 @@ class StagePilotTests(unittest.TestCase):
         self.assertEqual(destinations.count("scripts/codex_planning.py"), 1)
         self.assertEqual(len(destinations), len(set(destinations)))
         self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 12)
+
+    def test_geo_option_adds_only_saved_source_review_and_license(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    geo_review=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 32)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        added = set(destinations) - {
+            destination for _, destination in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(added, {
+            ".codex/agents/seo-codex-geo.toml",
+            ".agents/skills/seo-codex-geo/SKILL.md",
+            ".agents/skills/seo-codex-geo/references/review.md",
+            ".agents/skills/seo-codex-geo/LICENSE.txt",
+        })
+        self.assertEqual((self.output / ".agents/skills/seo-codex-geo/LICENSE.txt").read_bytes(),
+                         (self.source / "adapters/codex/skills/seo-codex-geo/LICENSE.txt").read_bytes())
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
+            "seo-codex-images", "seo-codex-local", "seo-codex-hreflang", "seo-codex-geo",
+        })
+        for name, agent in config["agents"].items():
+            self.assertEqual(set(agent), {"description", "config_file"})
+            self.assertEqual(agent["config_file"], f"agents/{name}.toml")
+            self.assertTrue((self.output / ".codex" / agent["config_file"]).is_file())
+        expected_scripts = {destination for _, destination in
+                            stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+                            if destination.startswith("scripts/")}
+        self.assertEqual({path.relative_to(self.output).as_posix()
+                          for path in (self.output / "scripts").iterdir()}, expected_scripts)
+        for row in manifest["files"] + manifest["generated_files"]:
+            self.assertEqual(row["sha256"], hashlib.sha256(
+                (self.output / row["destination"]).read_bytes()).hexdigest())
+        instructions = (self.output / "AGENTS.md").read_text()
+        self.assertIn("codex_audit.py plan ... --roles geo", instructions)
+        self.assertIn("six normal audit roles remain the default", instructions)
+        self.assertIn("CLI fallback remains technical and schema", instructions)
+        self.assertIn("passage clarity, attribution and", instructions)
+        self.assertIn("observed preview controls", instructions)
+        self.assertIn("do not measure AI visibility", instructions)
+        self.assertIn("citations, crawler access or eligibility", instructions)
+
+    def test_geo_option_without_registration_keeps_registration_opt_in(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, geo_review=True)
+        self.assertEqual(len(manifest["files"]), 32)
+        self.assertFalse((self.output / ".codex/config.toml").exists())
+
+    def test_all_seven_optional_workflows_remain_additive(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
+                                    visual_evidence=True, agentic_report=True, content_brief=True,
+                                    strategy_plan=True, source_drift=True, geo_review=True,
+                                    core_orchestration=True, runtime_foundation=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 63)
+        self.assertEqual(destinations.count("scripts/codex_planning.py"), 1)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 13)
+
+    def test_each_missing_geo_resource_leaves_no_output(self):
+        for source, _ in stage.GEO_FILES:
+            with self.subTest(source=source):
+                path = self.source / source
+                contents = path.read_bytes()
+                path.unlink()
+                with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+                    stage.stage_pilot(self.output, source_root=self.source, geo_review=True,
+                                      register_agents=True)
+                self.assertFalse(self.output.exists())
+                path.write_bytes(contents)
+
+    def test_unselected_geo_resources_are_not_required_or_staged(self):
+        for source, _ in stage.GEO_FILES:
+            (self.source / source).unlink()
+        cases = (
+            ({}, 8, 2),
+            ({"core_orchestration": True}, 28, 6),
+            ({"sitemap_analysis": True, "visual_evidence": True, "agentic_report": True,
+              "content_brief": True, "strategy_plan": True, "source_drift": True}, 59, 12),
+        )
+        for index, (options, file_count, profile_count) in enumerate(cases):
+            with self.subTest(options=options):
+                output = self.base / f"without-geo-{index}"
+                manifest = stage.stage_pilot(output, source_root=self.source,
+                                            register_agents=True, **options)
+                self.assertEqual(len(manifest["files"]), file_count)
+                config = tomllib.loads((output / ".codex/config.toml").read_text())
+                self.assertEqual(len(config["agents"]), profile_count)
+                self.assertNotIn("seo-codex-geo", config["agents"])
+                self.assertNotIn("Optional saved-source GEO review", (output / "AGENTS.md").read_text())
+                self.assertFalse((output / ".agents/skills/seo-codex-geo").exists())
+                self.assertFalse((output / ".codex/agents/seo-codex-geo.toml").exists())
+
+    def test_geo_cli_option_is_forwarded_and_defaults_off(self):
+        for flags, enabled in (([], False), (["--geo-review"], True)):
+            with self.subTest(flags=flags), mock.patch.object(stage, "stage_pilot") as stage_mock:
+                stage_mock.return_value = {"files": [], "compatibility_status": "not_verified_by_staging"}
+                with mock.patch("builtins.print"):
+                    self.assertEqual(stage.main(["--output", str(self.output), *flags]), 0)
+                self.assertIs(stage_mock.call_args.kwargs["geo_review"], enabled)
 
     def test_missing_sitemap_parser_leaves_no_output(self):
         (self.source / "scripts/sitemap_discovery.py").unlink()

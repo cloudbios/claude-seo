@@ -33,6 +33,9 @@ The accepted foundation permitted only `codex_pilot.py`. The subsequent
 allowlist; the default pilot-only stage does not include the coordinator.
 The optional visual, sitemap, saved-Lighthouse, content-brief, strategy and
 source-drift adapters add their own six bounded workflows; dispatch still requires each file in the active stage.
+The optional GEO reviewer reuses `codex_audit.py` and its existing runtime
+entry point. Its staged resources and provenance are checked before a new
+GEO plan is created.
 Dispatch uses the caller's
 interpreter with `-I -B`, a minimal platform environment, and explicit
 `CODEX_SEO_STATE_ROOT`, `CODEX_SEO_RUNTIME_DIR`, `CODEX_SEO_CONFIG_DIR` and
