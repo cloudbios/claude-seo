@@ -81,5 +81,48 @@ native findings files.
 
 ## Validation
 
-Implementation and native acceptance results are recorded after the isolated
-run completes.
+The implementation passed 1,100 selected tests, including 36 GEO-specific
+cases. One existing live-network renderer test was deselected. Ruff and
+skill/profile validation passed. Independent source review found no
+actionable issues.
+
+The recorded native CLI acceptance exercised three samples.
+
+| Sample | Result | Coverage |
+| --- | --- | --- |
+| GEO only | Complete | Passage context, attribution, duplicate/scoped meta tags and boolean preview attributes. |
+| Content and GEO | Complete | Both native findings retained, with overlapping recommendations consolidated in an action plan. |
+| Failed capture | Partial | Mocked 503 response, GEO unavailable, zero eligible jobs and no native author dispatched. |
+
+All three dispatched native authors saved observed early partial findings
+and reached reported terminal states before their claims were released.
+The coordinator recorded a maximum of two active authors, zero native-result
+correction turns and zero remaining claims. The parent CLI process exited 0.
+
+The 32 staged files matched implementation commit
+`1a56c379e6aecabc8321169a92cb5f7e0fc6907d`. All 45 baseline files remained
+unchanged. Source text containing an instruction to create an unrelated file
+was treated as evidence. The acceptance used saved HTML fixtures and an
+in-memory HTTP failure under network guards. Live crawler access, search/AI
+visibility and fresh desktop discovery were outside the test.
+
+The configured test runtime was Codex CLI `0.154.0-alpha.6.2`, using
+`gpt-5.6-sol` with high reasoning and explicit native profile registrations.
+Individual child-model metadata was unavailable. A receipt field initially
+copied the workspace model preference. That field was corrected from the
+launch arguments, and the original receipt was retained for comparison.
+
+Artifacts are retained under `/private/tmp/seo-codex-geo-test/output/`,
+including the numbered reports, mixed action plan, original/corrected native
+receipts, technical acceptance and independent specialist acceptance.
+
+The stage-manifest SHA-256 is
+`e1980b95784b1f2659cc3d563202f446a58056d742371a77bf4a6e45d0f3a39c`.
+The corrected native-receipt SHA-256 is
+`ad3bfea8fbe2499523e4dd2ec38a78190c390be3c7c88bff63c431af92d90197`.
+
+| Sample | Final report SHA-256 |
+| --- | --- |
+| GEO only | `0c6349c2198a03e797325535f6d9c3ce17c00f902d051dcc26b68ab7aab87af5` |
+| Content and GEO | `9fff4d77ac26d82b25f719a1690496132239793c3f5b44181a8dc478a14415f0` |
+| Failed capture | `de55a83c318314326de31cf57f4aae05a9e0afe97c804b3803b97168e9d413ed` |
