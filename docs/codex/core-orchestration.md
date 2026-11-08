@@ -35,7 +35,8 @@ Use a new or empty destination under an existing parent; resolve symlinked
 temporary paths first. The flag adds the runtime foundation, coordinator,
 router skill, audit skill and one synthesis reference to the unchanged
 default pilot payload. This initial batch copied fourteen files; the subsequent
-content/image batch copies 22. Copied and generated files have source hashes
+content/image batch copied 22; the [local/hreflang batch](local-hreflang.md)
+extends the current core to 28. Copied and generated files have source hashes
 in `stage-manifest.json`. Registration is scoped to the staged
 project. It does not prove that the host loaded those roles.
 

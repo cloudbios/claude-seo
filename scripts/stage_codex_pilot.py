@@ -47,6 +47,14 @@ CORE_FILES = (
     ("adapters/codex/skills/seo-codex-images/references/review.md",
      ".agents/skills/seo-codex-images/references/review.md"),
     ("skills/seo-images/LICENSE.txt", ".agents/skills/seo-codex-images/LICENSE.txt"),
+    ("adapters/codex/agents/seo-codex-local.toml", ".codex/agents/seo-codex-local.toml"),
+    ("adapters/codex/skills/seo-codex-local/SKILL.md", ".agents/skills/seo-codex-local/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-local/references/review.md",
+     ".agents/skills/seo-codex-local/references/review.md"),
+    ("adapters/codex/agents/seo-codex-hreflang.toml", ".codex/agents/seo-codex-hreflang.toml"),
+    ("adapters/codex/skills/seo-codex-hreflang/SKILL.md", ".agents/skills/seo-codex-hreflang/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-hreflang/references/review.md",
+     ".agents/skills/seo-codex-hreflang/references/review.md"),
 )
 VISUAL_FILES = (
     ("scripts/render_page.py", "scripts/render_page.py"),
@@ -80,6 +88,14 @@ config_file = "agents/seo-codex-content.toml"
 [agents.seo-codex-images]
 description = "Review captured source HTML for image markup, text alternatives and delivery declarations."
 config_file = "agents/seo-codex-images.toml"
+
+[agents.seo-codex-local]
+description = "Review captured source HTML for local business identity and declared location signals."
+config_file = "agents/seo-codex-local.toml"
+
+[agents.seo-codex-hreflang]
+description = "Review one captured page's language and alternate-URL declarations."
+config_file = "agents/seo-codex-hreflang.toml"
 '''
 VISUAL_AGENT_REGISTRATION = '''
 [agents.seo-codex-visual]
@@ -149,7 +165,7 @@ reviewer stops. This adapter does not generate or submit sitemaps.
 CORE_INSTRUCTIONS = """# Bounded Codex SEO core
 
 Use `.agents/skills/seo-codex/SKILL.md` to route requests. Its supported workflows
-are the one-page pilot, content and image-markup reviews, and a sampled audit
+are the one-page pilot, content, image-markup, local and hreflang source reviews, and a sampled audit
 of one to five explicit pages using `.agents/skills/seo-codex-audit/SKILL.md`.
 Other routes require an explicitly staged adapter.
 Do not invoke unrelated globally installed SEO skills or upstream workflows.
@@ -158,7 +174,7 @@ no new network, installation, authentication, spending, or publication authority
 
 The caller supplies a prepared Python and an absolute dedicated state root.
 Do not install dependencies or change global settings. Technical, schema,
-content and image-review profiles are in `.codex/agents/`; model, reasoning,
+content, images, local and hreflang profiles are in `.codex/agents/`; model, reasoning,
 and permissions inherit from the caller. Do not assume agent discovery or
 hook compatibility has passed.
 Use explicit schema validation through the capture workflow.

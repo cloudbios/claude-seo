@@ -2,9 +2,11 @@
 
 The optional core stage adds the `seo-codex` router and `seo-codex-audit` sampled
 audit to the verified one-page pilot. It covers 1–5 explicitly supplied pages,
-supports technical, schema, content and image-markup roles, and limits active
+supports technical, schema, content, images, local and hreflang roles, and limits active
 review jobs to two. The [content/image batch](../../docs/codex/content-images.md)
-describes the added source-only specialties and explicit role selection.
+describes the first source-only specialties and explicit role selection. The
+[local/hreflang batch](../../docs/codex/local-hreflang.md) adds the two latest
+source reviews.
 Other upstream skills and provider integrations remain unavailable through it.
 
 An optional [visual-evidence stage](../../docs/codex/visual-evidence.md) adds

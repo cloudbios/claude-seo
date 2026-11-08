@@ -52,15 +52,17 @@ Use the existing core staging command:
   --register-agents --core-orchestration
 ```
 
-The core stage now has 22 explicit copied files, including four native
+At this batch's acceptance, the core stage had 22 explicit copied files, including four native
 profiles, the two new skills and their bounded references, and the upstream
 skill license notices. The default pilot stage remains eight copied files
-and two native profiles. No installed skills or global configuration change.
+and two native profiles. The subsequent [local/hreflang batch](local-hreflang.md)
+extends the core to 28 files and six selectable roles. No installed skills or
+global configuration change.
 
 The router sends `content` and `images` requests to their respective new
 skills. Each uses the same sampled coordinator with the requested role.
-The audit skill explicitly selects all four roles for its broader default
-review. Direct API/CLI plans without `--roles` keep the original technical
+This batch's general audit selected all four roles; the subsequent core skill
+selects all six unless narrower coverage is requested. Direct API/CLI plans without `--roles` keep the original technical
 and schema pair:
 
 ```text

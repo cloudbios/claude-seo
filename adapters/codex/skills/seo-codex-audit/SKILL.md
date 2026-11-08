@@ -1,6 +1,6 @@
 ---
 name: seo-codex-audit
-description: Coordinate a sampled SEO audit of one to five explicit pages using shared captures, selected native technical, schema, content and images roles, and recoverable local artifacts. Use for this bounded audit or its resume; excludes full-site crawling and provider-backed analysis.
+description: Coordinate a sampled SEO audit of one to five explicit pages using shared captures, six selectable native source-review roles and recoverable local artifacts. Use for this bounded audit or its resume; excludes full-site crawling and provider-backed analysis.
 ---
 
 # Sampled Codex SEO audit
@@ -16,11 +16,12 @@ root. Every helper command below runs through this prefix:
 Run the prepared runtime's `doctor --json` first with the same host/state
 arguments. Missing capabilities remain unavailable; do not install or enable
 anything. Use only the selected native roles: `seo-codex-technical`,
-`seo-codex-schema`, `seo-codex-content` and `seo-codex-images`. Select all four
+`seo-codex-schema`, `seo-codex-content`, `seo-codex-images`, `seo-codex-local`
+and `seo-codex-hreflang`. Select all six
 for a general sampled audit; preserve narrower coverage explicitly requested
-by the user or the calling content/images skill. Read each selected new role's
-methodology in `../seo-codex-content/references/review.md` or
-`../seo-codex-images/references/review.md` and include it in that role's brief.
+by the user or the calling focused skill. For content, images, local and
+hreflang, read `../seo-codex-<role>/references/review.md` and include the
+corresponding methodology in that role's brief.
 If a required role is unavailable, preserve partial artifacts and report that
 gap. Do not substitute a generic worker, another skill or an inline review.
 
@@ -38,7 +39,7 @@ observation. Do not choose extra pages by following links, crawling sitemaps,
 searching the web or consulting provider data. If a requested site audit lacks
 an explicit sample, explain the coverage and obtain that sample first.
 
-1. Run `plan --urls <input-json> --output <new-audit-directory> --roles technical schema content images --max-workers 2`
+1. Run `plan --urls <input-json> --output <new-audit-directory> --roles technical schema content images local hreflang --max-workers 2`
    for a general sampled audit. For explicitly narrower coverage, pass only
    its selected role names to `--roles`. Always pass `--roles` for new plans in
    this workflow: the engine's omitted-flag default remains technical/schema

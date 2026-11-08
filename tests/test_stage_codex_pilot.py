@@ -132,8 +132,14 @@ class StagePilotTests(unittest.TestCase):
             ".agents/skills/seo-codex-images/SKILL.md",
             ".agents/skills/seo-codex-images/references/review.md",
             ".agents/skills/seo-codex-images/LICENSE.txt",
+            ".codex/agents/seo-codex-local.toml",
+            ".agents/skills/seo-codex-local/SKILL.md",
+            ".agents/skills/seo-codex-local/references/review.md",
+            ".codex/agents/seo-codex-hreflang.toml",
+            ".agents/skills/seo-codex-hreflang/SKILL.md",
+            ".agents/skills/seo-codex-hreflang/references/review.md",
         })
-        self.assertEqual(len(manifest["files"]), 22)
+        self.assertEqual(len(manifest["files"]), 28)
         for entry in manifest["files"] + manifest["generated_files"]:
             data = (self.output / entry["destination"]).read_bytes()
             self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
@@ -152,11 +158,12 @@ class StagePilotTests(unittest.TestCase):
                                     runtime_foundation=True, register_agents=True)
         destinations = [row["destination"] for row in manifest["files"]]
         self.assertEqual(len(destinations), len(set(destinations)))
-        self.assertEqual(len(destinations), 22)
+        self.assertEqual(len(destinations), 28)
         self.assertTrue((self.output / ".codex/config.toml").is_file())
         config = tomllib.loads((self.output / ".codex/config.toml").read_text())
         self.assertEqual(set(config["agents"]), {
-            "seo-codex-technical", "seo-codex-schema", "seo-codex-content", "seo-codex-images"
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content", "seo-codex-images",
+            "seo-codex-local", "seo-codex-hreflang"
         })
         for name, agent in config["agents"].items():
             self.assertEqual(set(agent), {"description", "config_file"})
@@ -172,8 +179,8 @@ class StagePilotTests(unittest.TestCase):
     def test_visual_option_is_scoped_includes_core_and_has_provenance(self):
         manifest = stage.stage_pilot(self.output, source_root=self.source,
                                     visual_evidence=True, register_agents=True)
-        self.assertEqual(len(manifest["files"]), 27)
-        self.assertEqual(len({r["destination"] for r in manifest["files"]}), 27)
+        self.assertEqual(len(manifest["files"]), 33)
+        self.assertEqual(len({r["destination"] for r in manifest["files"]}), 33)
         visual = {r["destination"] for r in manifest["files"]} - {
             dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
         }
@@ -184,7 +191,7 @@ class StagePilotTests(unittest.TestCase):
         config = tomllib.loads((self.output / ".codex/config.toml").read_text())
         self.assertEqual(set(config["agents"]), {
             "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
-            "seo-codex-images", "seo-codex-visual"
+            "seo-codex-images", "seo-codex-local", "seo-codex-hreflang", "seo-codex-visual"
         })
         for row in manifest["files"] + manifest["generated_files"]:
             self.assertEqual(row["sha256"], hashlib.sha256(
@@ -205,7 +212,7 @@ class StagePilotTests(unittest.TestCase):
     def test_sitemap_option_is_scoped_and_independent_of_visual(self):
         manifest = stage.stage_pilot(self.output, source_root=self.source,
                                     sitemap_analysis=True, register_agents=True)
-        self.assertEqual(len(manifest["files"]), 27)
+        self.assertEqual(len(manifest["files"]), 33)
         added = {r["destination"] for r in manifest["files"]} - {
             dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
         }
@@ -216,7 +223,7 @@ class StagePilotTests(unittest.TestCase):
         config = tomllib.loads((self.output / ".codex/config.toml").read_text())
         self.assertEqual(set(config["agents"]), {
             "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
-            "seo-codex-images", "seo-codex-sitemap"
+            "seo-codex-images", "seo-codex-local", "seo-codex-hreflang", "seo-codex-sitemap"
         })
         self.assertFalse((self.output / "scripts/codex_visual.py").exists())
         self.assertFalse((self.output / "scripts/google_auth.py").exists())
@@ -229,10 +236,10 @@ class StagePilotTests(unittest.TestCase):
         manifest = stage.stage_pilot(self.output, source_root=self.source,
                                     sitemap_analysis=True, visual_evidence=True, register_agents=True)
         destinations = [row["destination"] for row in manifest["files"]]
-        self.assertEqual(len(destinations), 32)
+        self.assertEqual(len(destinations), 38)
         self.assertEqual(len(destinations), len(set(destinations)))
         config = tomllib.loads((self.output / ".codex/config.toml").read_text())
-        self.assertEqual(len(config["agents"]), 6)
+        self.assertEqual(len(config["agents"]), 8)
 
     def test_missing_sitemap_parser_leaves_no_output(self):
         (self.source / "scripts/sitemap_discovery.py").unlink()
