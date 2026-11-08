@@ -77,8 +77,14 @@ Each capture runs in a supervised child process. Fresh browser contexts block
 service workers and WebSocket connections, while routing fulfills only the
 saved main document and aborts other requests. A whole-worker timeout bounds
 JavaScript stalls, and browser/process cleanup runs on failure as well as
-success. No persistent browser profile, account session, ambient raw HTTP
+success, including handled SIGTERM cancellation. No persistent browser profile,
+account session, ambient raw HTTP
 fetch or provider/auth helper is used.
+
+`doctor` exits nonzero when prerequisites are unavailable. Capture exits
+nonzero when rendering is incomplete, and finalization exits nonzero for a
+partial review; accepted partial evidence remains on disk. `validate` can
+succeed for an internally valid partial bundle and reports its actual state.
 
 ## Provenance and validation
 
@@ -89,5 +95,64 @@ seam reuses the existing renderer and guarded browser context.
 were cross-checked through Context7. Runtime-specific acceptance is recorded
 separately below; documentation alone does not prove the installed browser works.
 
-Validation results and exact tested source identities will be recorded after
-the automated, real-browser and native-role checks complete.
+The implementation at `cf3ab6d1ef2e993d49a5f8a3543c88b697011958` passed
+509 selected tests, with the existing live-network renderer test deselected.
+Ruff and the visual skill validator passed. Independent source review covered
+isolated execution, cancellation, source/artifact validation, charset/browser
+provenance and optional staging.
+
+Real-browser acceptance used prepared Python 3.12.14, Playwright 1.63.0 and
+Chromium headless shell 153.0.8010.12 on macOS. The first sandboxed launch was
+blocked by macOS Mach-port permissions and correctly saved partial evidence;
+the same offline render succeeded after a normal host permission escalation.
+Both viewport PNGs were inspected. Inline JavaScript text and UTF-8 characters
+rendered, external image/API attempts were rejected by CSP, and the mobile
+fixture's fixed-width panel produced recorded 740px document width against a
+390px viewport. Desktop document width was 1280px against a 1280px viewport.
+
+A separate infinite-loop fixture hit the four-second process timeout, returned
+exit code 1 with two partial viewports, and left zero live members of its
+observed worker process group (six descendants observed; 4.41 seconds total).
+The original fixture capture was preserved. These checks establish this
+prepared environment's behavior, not compatibility with every browser or OS.
+
+Native acceptance used Codex CLI `0.154.0-alpha.6.2` with the per-run native
+role registration and `gpt-5.6-sol`, high reasoning, supported by that installed
+CLI. The role files continue to inherit the caller's model and permissions;
+these test overrides do not change them. This is a CLI acceptance receipt,
+not an additional fresh desktop-discovery test.
+
+The staged `visual` route returned available. One fresh-context native
+`seo-codex-visual` task (`/root/harbor_visual_review`) saved an early partial
+result, reached an observed completed state, and then passed finalization and
+validation. Its terminal result reported `view_image` inspection of both PNGs;
+the coordinator could not observe the child's underlying tool-call stream.
+An independent reviewer actually opened both PNGs and accepted all six
+findings and the final report, with no required fixes. Heading/CTA visibility,
+mobile text cutoff and measured overflow were supported; blocked images and
+the injected HTML instruction were handled as evidence, not commands.
+
+The 27 staged source files were compared byte-for-byte with the implementation
+commit. Acceptance artifacts live under
+`/private/tmp/seo-codex-visual-test/output/` on the test host:
+
+- `NATIVE-RECEIPT.json`: observed native workflow and visibility limits.
+- `BROWSER-ACCEPTANCE.json`: source/stage/artifact verification.
+- `VISUAL-ACCEPTANCE.json`: independent pixel/findings/report review.
+- `TIMEOUT-ACCEPTANCE.json`: real browser timeout and process cleanup.
+- `native-visual/REPORT.md`: complete bounded visual report.
+
+Exact identities:
+
+| Evidence | SHA-256 |
+|---|---|
+| Stage manifest | `182e7e693811ae8ac7335593534a4b7b478a2ae61aabc5e467143a7cb4eca9bd` |
+| Original fixture HTML (2,138 bytes) | `8b6745c4196c960eb7cbfe277f299189af0fa02c8e04f2dc2fd71ac5b6dc3409` |
+| Original pilot manifest | `1c70266663ddd1b546a3418133aec4d31188e9ee550d6656a746289d3b98bb35` |
+| Render evidence identity | `46e87758154329f06a6c26b9850368a636d03df1961848de3a1a27e2dfdadf6c` |
+| Final report | `87e3445a38d0db9dd1e380415de0680df72447ea30b09b917f2170f5e0ba48c4` |
+
+The source capture and its manifest remained unchanged. No global SEO
+installation, dependency installation, provider enablement or live-page fetch
+was performed in this acceptance run. Performance, live rendering and provider
+adapters remain separate future batches.
