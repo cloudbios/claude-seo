@@ -33,7 +33,7 @@ The native planner first creates labelled notes that separate user claims,
 source observations, inferences and proposals. Roadmap and content-calendar
 items reference those notes. Each roadmap task has an owner role, priority,
 week window, dependencies and observable completion criteria. Dependency IDs
-must exist, be acyclic and finish before their dependent tasks begin. Calendar
+must exist, be acyclic and end by the dependent task's start week. Calendar
 items stay within their associated roadmap task's window.
 
 The site structure separates captured site URLs from proposed relative paths.
@@ -99,4 +99,61 @@ and the existing content-brief regressions. One existing live-network renderer
 test was deselected. Ruff, both affected skill validators and independent
 source review passed.
 
-Native acceptance is recorded below after the isolated run completes.
+## Native acceptance
+
+The implementation at `95ef77f48a23efe94e2cfcd0a6e0638eeef42326` was staged
+with both planning workflows. The 39 copied files were compared with that
+commit, and all 63 original stage, input, fixture and capture files remained
+unchanged. The five strategy reports and the brief use their saved evidence
+and result hashes.
+
+A recorded Codex CLI `0.154.0-alpha.6.2` session used explicit per-run native
+registrations with the supported `gpt-5.6-sol` model configured at high
+reasoning. The profiles inherit model and permission settings. This is CLI
+acceptance, not fresh desktop registration verification; child model identity
+and some lifecycle details are limited to what the runtime exposes.
+
+Three native cases exercised the final staged code:
+
+- An existing-site strategy used two site captures and one reference capture.
+  It retained the business's drawing-service scope, left budget and capacity
+  unresolved, proposed a six-week sequence with an early confirmation gate,
+  and preserved captured URLs. It did not borrow the reference company's
+  construction or engineering services.
+- A new SaaS strategy used requirements only. It treated the product as a
+  concept, kept all pages proposed and respected limited founder time and
+  unknown implementation capacity. It invented no customers, features,
+  integrations, prices or measured results.
+- The content-brief regression used its original nine-section contract and
+  source captures. It preserved the target URL and useful content, kept
+  source citations and distinguished keep/strengthen/add recommendations.
+
+Independent review accepted the content, citations, dependency graphs,
+relative schedules and measurement definitions. Baselines remained
+unavailable, and targets were unset or explicitly proposed. Embedded page
+instructions were treated as data. Each writer saved an observed early partial
+result; the coordinator observed termination before finalization. The maximum
+observed number of active native authors was two, with none remaining after
+completion. All three jobs completed without correction turns or approval
+rejections, and the recorded CLI session exited successfully.
+
+No live site, account, provider integration or actual performance baseline was
+tested. Saved examples establish the bounded workflows and artifact handling;
+they do not establish business results or universal plan quality.
+
+Acceptance files are retained under `/private/tmp/seo-codex-strategy-test/output/`:
+
+- `NATIVE-RECEIPT.json`: native handles, partial and terminal observations,
+  completion states and lifecycle visibility limits.
+- `TECHNICAL-ACCEPTANCE.json`: exact staged-source, baseline and output hashes.
+- `SPECIALIST-ACCEPTANCE.json`: independent content, citation and receipt review.
+- `existing/` and `new/`: each strategy's five reports and supporting evidence.
+- `brief-regression/`: the validated content-brief regression output.
+
+
+| Evidence | SHA-256 |
+| --- | --- |
+| Stage manifest | `5cbff49658c530b83aaf7fed8b83d42ea241e837082a2885651363bb1217a150` |
+| Existing-site strategy | `63af2fb09b8d824522c938fcffe34e9a04d5fa476edd5a8348852e15e92ef53b` |
+| New-site strategy | `c02a217443bf18c2edcd7a26c315193683d4dc44b999f69844a6fec02a2da66b` |
+| Content-brief regression | `a5375e3604dc6b23250a460cd4769ffd553894f6b3cddeac21ff42c2e31d0c1e` |
