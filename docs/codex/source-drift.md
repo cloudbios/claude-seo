@@ -40,14 +40,15 @@ headers or HTTP behavior. Fixture captures have no measured HTTP status.
 ## Interpretation
 
 The native reviewer separates observed changes, possible consequences and
-verification steps. Canonical changes need intent and destination context;
-[Google's guidance](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls)
-describes declarations as signals rather than guaranteed canonical selection.
+verification steps. Canonical changes need intent and destination context.
+Google describes declarations as signals for canonical selection.
+[Google canonical guidance](https://developers.google.com/search/docs/crawling-indexing/consolidate-duplicate-urls)
+
 Robots meta declarations and recorded `X-Robots-Tag` values remain separate.
 The review does not reduce crawler-specific directives to a substring test or
-claim that a saved declaration proves current indexing. See the
-[robots directive specification](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag)
-and [noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing).
+claim that a saved declaration proves current indexing.
+[Robots directive specification](https://developers.google.com/search/docs/crawling-indexing/robots-meta-tag),
+[noindex guidance](https://developers.google.com/search/docs/crawling-indexing/block-indexing)
 
 This adaptation keeps useful comparison categories from the upstream drift
 workflow while removing automatic traffic-loss predictions, arbitrary urgency
@@ -87,5 +88,46 @@ that the site is unchanged, healthy or ready for release.
 
 ## Validation
 
-Implementation checks and native acceptance results are recorded here after
-the isolated run completes.
+The implementation passed 1,058 selected tests, including 62 drift tests.
+One existing live-network renderer test was deselected. Ruff and skill
+validation passed. Independent source review accepted the implementation
+after a fix that distinguishes preview truncation from full-value omission.
+
+The recorded native CLI acceptance used three controlled cases.
+
+| Case | Result | Evidence checked |
+| --- | --- | --- |
+| Changed fixture | Complete | Seven changed fields, including formatting-only JSON-LD; qualified canonical and generic robots interpretation. |
+| Identical fixture | Complete | Twenty unchanged comparisons and unavailable fixture HTTP status. |
+| Failed after capture | Partial, transport-only | Mocked 200-to-503 transition; all thirteen document, schema and HTML-hash comparisons unavailable. |
+
+The failed-fetch pair was generated with in-memory transport responses and
+real DNS/HTTP guards. The acceptance exercises saved-evidence handling.
+Fresh desktop discovery, live HTTP behavior and provider integrations remain
+outside this test. Captured instruction-like text was retained as evidence.
+
+The stage copied 34 files from implementation commit
+`c7ca2c571902bd9f924f8765aba2a97bb0f53527`. All 71 baseline files in the
+staged package, fixture inputs and source captures remained unchanged.
+Each native author saved an observed early partial and reached a reported
+terminal state before finalization. The coordinator recorded a maximum of
+two active authors, zero correction turns and zero authors remaining.
+The acceptance used recorded Codex CLI `0.154.0-alpha.6.2` with explicit native
+role registration and configured `gpt-5.6-sol` at high reasoning. Individual
+child-model metadata is unavailable.
+
+Acceptance artifacts are retained under
+`/private/tmp/seo-codex-drift-test/output/`, including each case's report,
+`NATIVE-RECEIPT.json`, `TECHNICAL-ACCEPTANCE.json` and
+`SPECIALIST-ACCEPTANCE.json`.
+
+The stage-manifest SHA-256 is
+`3cba361251d2d96ecdde6512dbd2e8d42948443663d2f5ae32dbe94c84910022`.
+The native-receipt SHA-256 is
+`84a44491e5ae7fc63fec6b9bf692d59d373e6724d3802507e9069216fd879832`.
+
+| Case | Final report SHA-256 |
+| --- | --- |
+| Changed | `1d01cdd2c0ebb85e30b3326c9ad6401542d3216c47861d2dd5e30b3ed7ee1ca7` |
+| Unchanged | `c58120445628812b9a823efe764a4d0766b06424bd47bd58ef11bb1ac90e9af9` |
+| Failed | `73042eea5fc736fd1be75c3bcaf664c796905052e8d6f95079be81ebe7e3dd40` |
