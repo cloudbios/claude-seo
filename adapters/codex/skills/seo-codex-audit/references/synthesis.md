@@ -1,11 +1,12 @@
-# Synthesis for a sampled technical/schema audit
+# Synthesis for a sampled SEO audit
 
 Use the retained report snapshot and per-page evidence. Recommendations follow
 PERCEIVE → ANALYZE → VALIDATE → ACT; severity is an output of that reasoning,
 not a substitute for it. These phases adapt upstream
 `skills/seo/references/thinking-framework.md` and
 `thinking-framework-validate-act.md` under the included MIT license. They do
-not activate the upstream provider, content, baseline or scheduling workflows.
+not activate upstream provider, rendering, rewriting, baseline or scheduling
+workflows. Content and image reviews remain limited to captured source HTML.
 
 ## Perceive
 
@@ -17,12 +18,22 @@ Infer business type only when supported by that sample; name the assumption.
 
 ## Analyze
 
-Connect technical and schema observations supported by the same capture.
+Connect the selected roles' observations supported by the same capture.
 For example, an observed robots directive and contradictory markup may need
 one coordinated review. A missing rendered representation can explain apparent
 missing content; do not turn that uncertainty into a confirmed absence.
 Compare repeated metadata only within the supplied sample. An observation
 about those pages does not establish site-wide duplication or orphan status.
+
+For content, distinguish observed attribution, dates, sourcing and claimed
+experience from verified facts, credentials or reputation. Use actual excerpts
+to explain clarity, repetition and gaps relative to the user's intent. Do not
+treat crude document word counts or total link counts as measures of quality
+or citations, or infer AI authorship. For images, distinguish missing alt from
+empty alt and possible decoration; declared sizing, responsive and loading
+markup from visual accuracy, intrinsic dimensions and measured performance.
+File extensions do not verify formats or bytes. Missing rendering cannot
+establish above-fold placement, an LCP image or actual CLS.
 
 Prefer the underlying, evidenced cause over multiple recommendations for its
 symptoms. Separate observed markup from actual search-engine indexing, rich
@@ -61,5 +72,7 @@ create monitoring baselines or schedule tasks from this synthesis workflow.
 
 End with what the next review should inspect and which unresolved question it
 would answer. Preserve incomplete coverage and active-claim blockers even when
-the available findings are useful. Do not present an overall SEO health score
-from this technical/schema sample.
+the available findings are useful. Do not present an overall SEO health score,
+numeric content/readability or E-E-A-T scores from this sample. Name the roles
+actually selected and reviewed so a focused content or images report cannot
+imply four-role coverage.

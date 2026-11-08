@@ -51,6 +51,8 @@ def test_route_never_looks_up_auth_or_runs_network():
         for workflow in ("page", "technical", "schema"):
             assert audit.route(workflow)["skill"] == "seo-codex-pilot"
         assert audit.route("audit")["skill"] == "seo-codex-audit"
+        for workflow in ("content", "images"):
+            assert audit.route(workflow)["skill"] == "seo-codex-" + workflow
         assert audit.route("doctor")["target"] == "runtime"
         for workflow in ("backlinks", "setup", "image-gen", "anything"):
             assert audit.route(workflow)["status"] == "unavailable"
@@ -329,3 +331,181 @@ def test_forged_complete_capture_without_hashes_is_rejected(sample):
     path.write_text(json.dumps(ledger))
     with pytest.raises(audit.AuditError, match="lacks accepted evidence"):
         audit.next_jobs(sample, 2)
+
+
+def test_default_and_legacy_plans_keep_original_pair(sample):
+    path = sample / audit.MANIFEST
+    ledger = json.loads(path.read_text())
+    assert ledger["plan"]["roles"] == list(audit.ROLES)
+    assert len(ledger["tasks"]) == 4
+    del ledger["plan"]["roles"]
+    ledger["plan_sha256"] = audit.pilot.digest(audit.pilot.encode(ledger["plan"], compact=True))
+    path.write_text(json.dumps(ledger))
+    assert audit._load(sample)[1]["plan"] == ledger["plan"]
+    audit.capture(sample)
+    assert [job["role"] for job in audit.next_jobs(sample, 2)["jobs"]] == list(audit.ROLES)
+    for task_id in ledger["tasks"]:
+        result(sample, task_id)
+    assert audit.report(sample)["status"] == "complete"
+
+
+@pytest.mark.parametrize("roles", [[], "content", ("content",), {}, [None], [["content"]],
+                                   ["unknown"], ["content", "content"]])
+def test_explicit_invalid_roles_are_rejected_before_output(sample, tmp_path, roles):
+    output = tmp_path / "invalid"
+    with pytest.raises(audit.AuditError, match="Roles"):
+        audit.plan(tmp_path / "urls.json", output, roles=roles)
+    assert not output.exists()
+
+
+def test_four_roles_canonical_order_global_cap_and_complete_report(sample, tmp_path):
+    output = tmp_path / "four"
+    audit.plan(tmp_path / "urls.json", output, roles=list(reversed(audit.SUPPORTED_ROLES)))
+    root, ledger = audit._load(output)
+    assert ledger["plan"]["roles"] == list(audit.SUPPORTED_ROLES)
+    assert len(ledger["tasks"]) == 8
+    audit.capture(output)
+    jobs = audit.next_jobs(output, 64)["jobs"]
+    assert [job["role"] for job in jobs] == list(audit.ROLES)
+    for job in jobs:
+        audit.start(output, job["task_id"])
+    extra = f"{ledger['plan']['pages'][0]['id']}:content"
+    with pytest.raises(audit.AuditError, match="cap"):
+        audit.start(output, extra)
+    result(output, jobs[0]["task_id"])
+    audit.reconcile(output, jobs[0]["task_id"])
+    assert audit.next_jobs(output, 64)["jobs"][0]["role"] == "content"
+    job = audit.start(output, extra)
+    assert job["agent_type"] == "seo-codex-content"
+    assert job["result_file"] == str(root / "pages" / job["page_id"] / "findings/content.json")
+    for task_id in ledger["tasks"]:
+        result(output, task_id)
+    # Complete files cannot release either of the two remaining reservations.
+    assert audit.report(output)["status"] == "partial"
+    audit.reconcile(output, jobs[1]["task_id"])
+    audit.reconcile(output, extra)
+    report = audit.report(output)
+    assert report["status"] == "complete"
+    text = Path(report["report"]).read_text()
+    for role in audit.SUPPORTED_ROLES:
+        assert f"### {role.title()}: complete" in text
+
+
+@pytest.mark.parametrize("role", ["content", "images"])
+def test_single_extra_role_cli_plan_and_resume(sample, tmp_path, role):
+    output = tmp_path / role
+    assert audit.main(["plan", "--urls", str(tmp_path / "urls.json"), "--output", str(output),
+                       "--roles", role]) == 0
+    assert audit._load(output)[1]["plan"]["roles"] == [role]
+    audit.capture(output)
+    jobs = audit.next_jobs(output, 64)["jobs"]
+    assert len(jobs) == 2
+    assert all(job["agent_type"] == "seo-codex-" + role for job in jobs)
+    first = jobs[0]["task_id"]
+    audit.start(output, first)
+    result(output, first, "partial")
+    audit.reconcile(output, first)
+    assert first not in [job["task_id"] for job in audit.next_jobs(output, 64)["jobs"]]
+    assert first in [job["task_id"] for job in audit.next_jobs(output, 64, True)["jobs"]]
+    for job in jobs:
+        result(output, job["task_id"])
+    report = audit.report(output)
+    assert report["status"] == "complete"
+    assert "### Technical" not in Path(report["report"]).read_text()
+
+
+@pytest.mark.parametrize("role", ["content", "images"])
+@pytest.mark.parametrize("mutation", ["wrong-role", "wrong-capture", "changed", "removed"])
+def test_extra_role_result_identity_and_missing_evidence(sample, tmp_path, role, mutation):
+    output = tmp_path / "extra"
+    audit.plan(tmp_path / "urls.json", output, roles=[role])
+    audit.capture(output)
+    task_id = audit.next_jobs(output, 1)["jobs"][0]["task_id"]
+    assert audit.report(output)["tasks"][task_id] == "pending"
+    if mutation in ("wrong-role", "wrong-capture"):
+        result(output, task_id, role="schema" if mutation == "wrong-role" else role,
+               digest="0" * 64 if mutation == "wrong-capture" else None)
+    else:
+        path = result(output, task_id)
+        audit.reconcile(output)
+        if mutation == "removed":
+            path.unlink()
+        else:
+            path.write_text(path.read_text() + " ")
+    with pytest.raises(ValueError):
+        audit.report(output)
+
+
+@pytest.mark.parametrize("mutation", ["changed-plan", "missing-task", "extra-task", "wrong-task",
+                                      "invalid-roles", "duplicate-roles", "noncanonical-roles"])
+def test_selected_roles_and_task_graph_reject_mutation(sample, tmp_path, mutation):
+    output = tmp_path / "four"
+    audit.plan(tmp_path / "urls.json", output, roles=list(audit.SUPPORTED_ROLES))
+    path = output / audit.MANIFEST
+    ledger = json.loads(path.read_text())
+    task_id = next(key for key in ledger["tasks"] if key.endswith(":images"))
+    if mutation == "changed-plan":
+        ledger["plan"]["roles"].remove("images")
+    elif mutation == "missing-task":
+        del ledger["tasks"][task_id]
+    elif mutation == "extra-task":
+        ledger["tasks"][task_id.replace(":images", ":unknown")] = ledger["tasks"][task_id]
+    elif mutation == "wrong-task":
+        ledger["tasks"][task_id]["role"] = "content"
+    else:
+        ledger["plan"]["roles"] = {"invalid-roles": ["unknown"],
+                                    "duplicate-roles": ["content", "content"],
+                                    "noncanonical-roles": list(reversed(audit.SUPPORTED_ROLES))}[mutation]
+        ledger["plan_sha256"] = audit.pilot.digest(audit.pilot.encode(ledger["plan"], compact=True))
+    path.write_text(json.dumps(ledger))
+    with pytest.raises(audit.AuditError):
+        audit.next_jobs(output, 2)
+
+
+@pytest.mark.parametrize("roles", [["content", "content"], ["unknown"], []])
+def test_invalid_cli_roles_do_not_create_output(sample, tmp_path, roles):
+    output = tmp_path / "invalid-cli"
+    argv = ["plan", "--urls", str(tmp_path / "urls.json"), "--output", str(output), "--roles", *roles]
+    if roles == ["content", "content"]:
+        assert audit.main(argv) == 2
+    else:
+        with pytest.raises(SystemExit) as exc:
+            audit.main(argv)
+        assert exc.value.code == 2
+    assert not output.exists()
+
+
+@pytest.mark.parametrize("role_count", [2, 4])
+@pytest.mark.parametrize("text", ["Long observed source finding. " * 100, "頁面內容觀察。" * 400])
+def test_five_page_report_has_shared_bounded_excerpt_budget(sample, tmp_path, role_count, text):
+    urls = tmp_path / "long-urls.json"
+    urls.write_text(json.dumps([{"url": f"https://example.com/page-{index}",
+                                 "html": str(tmp_path / "page.html")} for index in range(5)]))
+    output = tmp_path / "long-report"
+    roles = list(audit.SUPPORTED_ROLES[:role_count])
+    audit.plan(urls, output, roles=roles)
+    audit.capture(output)
+    _, ledger = audit._load(output)
+    artifacts = {}
+    for task_id in ledger["tasks"]:
+        path = result(output, task_id)
+        value = json.loads(path.read_text())
+        value["findings"] = [text] * 20
+        value["limitations"] = [text] * 20
+        path.write_text(json.dumps(value))
+        artifacts[path] = path.read_bytes()
+    report = audit.report(output)
+    data = Path(report["report"]).read_bytes()
+    assert report["status"] == "complete"
+    assert len(data) < audit.MAX_MANIFEST_BYTES
+    rendered = data.decode()
+    items = min(20, 40 // role_count)
+    assert rendered.count("- findings: ") == 5 * role_count * items
+    assert rendered.count("- limitations: ") == 5 * role_count * items
+    assert rendered.count("[truncated; read role artifact]") == 5 * role_count * items * 2
+    if role_count == 4:
+        assert rendered.count("10 additional findings retained; read role artifact.") == 20
+        assert rendered.count("10 additional limitations retained; read role artifact.") == 20
+    else:
+        assert "additional findings" not in rendered
+    assert all(path.read_bytes() == original for path, original in artifacts.items())

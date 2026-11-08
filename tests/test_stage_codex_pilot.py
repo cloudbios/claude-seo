@@ -125,8 +125,15 @@ class StagePilotTests(unittest.TestCase):
             "scripts/runtime.py", "scripts/state_paths.py", "scripts/codex_audit.py",
             ".agents/skills/seo-codex/SKILL.md", ".agents/skills/seo-codex-audit/SKILL.md",
             ".agents/skills/seo-codex-audit/references/synthesis.md",
+            ".codex/agents/seo-codex-content.toml", ".codex/agents/seo-codex-images.toml",
+            ".agents/skills/seo-codex-content/SKILL.md",
+            ".agents/skills/seo-codex-content/references/review.md",
+            ".agents/skills/seo-codex-content/LICENSE.txt",
+            ".agents/skills/seo-codex-images/SKILL.md",
+            ".agents/skills/seo-codex-images/references/review.md",
+            ".agents/skills/seo-codex-images/LICENSE.txt",
         })
-        self.assertEqual(len(manifest["files"]), 14)
+        self.assertEqual(len(manifest["files"]), 22)
         for entry in manifest["files"] + manifest["generated_files"]:
             data = (self.output / entry["destination"]).read_bytes()
             self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
@@ -145,8 +152,22 @@ class StagePilotTests(unittest.TestCase):
                                     runtime_foundation=True, register_agents=True)
         destinations = [row["destination"] for row in manifest["files"]]
         self.assertEqual(len(destinations), len(set(destinations)))
-        self.assertEqual(len(destinations), 14)
+        self.assertEqual(len(destinations), 22)
         self.assertTrue((self.output / ".codex/config.toml").is_file())
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content", "seo-codex-images"
+        })
+        for name, agent in config["agents"].items():
+            self.assertEqual(set(agent), {"description", "config_file"})
+            self.assertEqual(agent["config_file"], f"agents/{name}.toml")
+            self.assertTrue((self.output / ".codex" / agent["config_file"]).is_file())
+
+    def test_missing_specialist_license_leaves_no_output(self):
+        (self.source / "skills/seo-images/LICENSE.txt").unlink()
+        with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+            stage.stage_pilot(self.output, source_root=self.source, core_orchestration=True)
+        self.assertFalse(self.output.exists())
 
     def test_missing_core_reference_leaves_no_output(self):
         (self.source / "adapters/codex/skills/seo-codex-audit/references/synthesis.md").unlink()

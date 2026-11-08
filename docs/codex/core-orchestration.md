@@ -1,9 +1,11 @@
 # Codex routing and sampled audits
 
-This batch builds on the accepted [one-page pilot](pilot-validation.md) and
+This initial orchestration batch builds on the accepted [one-page pilot](pilot-validation.md) and
 [runtime foundation](runtime-foundation.md). It adds a project-local router
 and a recoverable audit of 1–5 explicitly supplied pages. It reuses the same
 safe capture/parser/schema code and the same two native specialist profiles.
+The subsequent [content/image batch](content-images.md) extends explicit
+role selection while preserving original two-role plans.
 
 ## Supported scope
 
@@ -32,8 +34,9 @@ From the source checkout, using an already prepared interpreter:
 Use a new or empty destination under an existing parent; resolve symlinked
 temporary paths first. The flag adds the runtime foundation, coordinator,
 router skill, audit skill and one synthesis reference to the unchanged
-default pilot payload. Fourteen copied files and each generated file have
-source hashes in `stage-manifest.json`. Registration is scoped to the staged
+default pilot payload. This initial batch copied fourteen files; the subsequent
+content/image batch copies 22. Copied and generated files have source hashes
+in `stage-manifest.json`. Registration is scoped to the staged
 project. It does not prove that the host loaded those roles.
 
 Supply an absolute dedicated state root outside that project. Run the

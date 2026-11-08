@@ -5,9 +5,10 @@
 -->
 
 > **Codex adaptation in this fork:** the one-page pilot and runtime foundation
-> are verified. An optional bounded adapter adds routing and sampled technical/schema
-> audits of 1–5 explicit pages, with a two-session CLI resume test. See [Codex adapter](adapters/codex/README.md) and
-> [core orchestration](docs/codex/core-orchestration.md) for scope and validation.
+> are verified. An optional adapter supports sampled technical, schema, content
+> and image-markup reviews of 1–5 explicit pages. See [Codex adapter](adapters/codex/README.md),
+> [core orchestration](docs/codex/core-orchestration.md) and
+> [content/image validation](docs/codex/content-images.md) for the tested scope.
 > The upstream installation instructions below still describe Claude Code.
 
 <img src="assets/readme/v3/hero.svg" width="1200" height="420" alt="Claude SEO: rank in Google, get cited by AI. Three bots climb from #48 to #1 by fixing crawl, speed, schema, AI access and authority, then Google, ChatGPT, Perplexity, Gemini and Claude cite the site." />

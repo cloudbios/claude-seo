@@ -169,6 +169,29 @@ class PilotTests(unittest.TestCase):
         with self.assertRaises(pilot.PilotError):
             pilot.validate(self.output)
 
+    def test_extra_result_paths_do_not_expand_pilot_completion(self):
+        self.capture()
+        for role in ("content", "images"):
+            self.role(role)
+            path = pilot.child(self.output, "findings/" + role + ".json")
+            self.assertEqual(path.parent.name, "findings")
+            self.assertEqual(pilot.role_result(self.output, role, pilot.digest(HTML))["role"], role)
+        with self.assertRaises(pilot.PilotError):
+            pilot.child(self.output, "findings/unknown.json")
+        self.assertEqual(pilot.validate(self.output)["roles"], {"technical": "missing", "schema": "missing"})
+        self.assertFalse(pilot.finalize(self.output)["complete"])
+
+    def test_pilot_finalizes_original_pair_without_extra_results(self):
+        self.capture()
+        for role in pilot.ROLES:
+            self.role(role)
+        state = pilot.validate(self.output)
+        self.assertEqual(set(state["roles"]), {"technical", "schema"})
+        self.assertTrue(pilot.finalize(self.output)["complete"])
+        report = (self.output / "REPORT.md").read_text()
+        self.assertNotIn("Content", report)
+        self.assertNotIn("Images", report)
+
     def test_role_capture_mismatch_and_shapes_refused(self):
         self.capture()
         self.role("technical", sha="0" * 64)

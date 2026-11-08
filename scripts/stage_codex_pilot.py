@@ -37,6 +37,16 @@ CORE_FILES = (
     ("adapters/codex/skills/seo-codex-audit/SKILL.md", ".agents/skills/seo-codex-audit/SKILL.md"),
     ("adapters/codex/skills/seo-codex-audit/references/synthesis.md",
      ".agents/skills/seo-codex-audit/references/synthesis.md"),
+    ("adapters/codex/agents/seo-codex-content.toml", ".codex/agents/seo-codex-content.toml"),
+    ("adapters/codex/agents/seo-codex-images.toml", ".codex/agents/seo-codex-images.toml"),
+    ("adapters/codex/skills/seo-codex-content/SKILL.md", ".agents/skills/seo-codex-content/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-content/references/review.md",
+     ".agents/skills/seo-codex-content/references/review.md"),
+    ("skills/seo-content/LICENSE.txt", ".agents/skills/seo-codex-content/LICENSE.txt"),
+    ("adapters/codex/skills/seo-codex-images/SKILL.md", ".agents/skills/seo-codex-images/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-images/references/review.md",
+     ".agents/skills/seo-codex-images/references/review.md"),
+    ("skills/seo-images/LICENSE.txt", ".agents/skills/seo-codex-images/LICENSE.txt"),
 )
 AGENT_REGISTRATION = '''[agents.seo-codex-technical]
 description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
@@ -45,6 +55,15 @@ config_file = "agents/seo-codex-technical.toml"
 [agents.seo-codex-schema]
 description = "Review the staged one-page pilot's captured structured data and save grounded schema findings."
 config_file = "agents/seo-codex-schema.toml"
+'''
+CORE_AGENT_REGISTRATION = '''
+[agents.seo-codex-content]
+description = "Review captured source HTML for observable content quality, attribution and structure signals."
+config_file = "agents/seo-codex-content.toml"
+
+[agents.seo-codex-images]
+description = "Review captured source HTML for image markup, text alternatives and delivery declarations."
+config_file = "agents/seo-codex-images.toml"
 '''
 STAGE_INSTRUCTIONS = """# Bounded Codex SEO pilot
 
@@ -80,20 +99,23 @@ hygiene, not a replacement for the host sandbox or permissions.
 CORE_INSTRUCTIONS = """# Bounded Codex SEO core
 
 Use `.agents/skills/seo-codex/SKILL.md` to route requests. Its supported workflows
-are the one-page pilot and a sampled audit of one to five explicit pages using
-`.agents/skills/seo-codex-audit/SKILL.md`. Other routes are unavailable here.
+are the one-page pilot, content and image-markup reviews, and a sampled audit
+of one to five explicit pages using `.agents/skills/seo-codex-audit/SKILL.md`.
+Other routes are unavailable here.
 Do not invoke unrelated globally installed SEO skills or upstream workflows.
 Follow the caller's authorization and tool restrictions; this directory grants
 no new network, installation, authentication, spending, or publication authority.
 
 The caller supplies a prepared Python and an absolute dedicated state root.
-Do not install dependencies or change global settings. Technical and schema
-profiles are in `.codex/agents/`; model, reasoning, and permissions inherit from
-the caller. Do not assume agent discovery or hook compatibility has passed.
+Do not install dependencies or change global settings. Technical, schema,
+content and image-review profiles are in `.codex/agents/`; model, reasoning,
+and permissions inherit from the caller. Do not assume agent discovery or
+hook compatibility has passed.
 Use explicit schema validation through the capture workflow.
 
-One coordinator owns the audit manifest. Reserve each task before spawning;
-respect both the two-worker limit and the host's available capacity. Keep its
+One coordinator owns the audit manifest. Serialize commands that mutate the
+same audit directory. Reserve each task before spawning; respect both the
+two-worker limit and the host's available capacity. Keep its
 reservation until native completion or confirmed stop, then reconcile and
 release. A result file alone never proves the agent stopped. Report missing or
 partial results and retain captured evidence when resuming. Never claim that a
@@ -174,7 +196,9 @@ def stage_pilot(
                     + (FOUNDATION_INSTRUCTIONS if runtime_foundation else ""))
     generated = {"AGENTS.md": instructions.encode("utf-8")}
     if register_agents:
-        generated[".codex/config.toml"] = AGENT_REGISTRATION.encode("utf-8")
+        generated[".codex/config.toml"] = (
+            AGENT_REGISTRATION + (CORE_AGENT_REGISTRATION if core_orchestration else "")
+        ).encode("utf-8")
     if hook_python is not None:
         argv = [str(hook_python), "-I", "-B", str(output / "hooks" / "validate-schema.py")]
         hook_config = {
