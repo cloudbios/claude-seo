@@ -16,6 +16,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "scripts"))
 import codex_pilot as pilot  # noqa: E402
 import codex_visual as visual  # noqa: E402
 
+POSIX_CAPTURE = pytest.mark.skipif(
+    os.name != "posix", reason="Offline capture requires POSIX process-group cleanup"
+)
+
 
 def png(width, height):
     def chunk(kind, body):
@@ -37,7 +41,7 @@ def entry(name, complete=True):
 def source(tmp_path, monkeypatch):
     monkeypatch.delenv("CLAUDE_SEO_LOCAL_TARGETS", raising=False)
     fixture = tmp_path / "fixture.html"
-    fixture.write_text("<!doctype html><html><head><title>Saved</title></head><body>Saved fixture</body></html>")
+    fixture.write_text("<!doctype html><html><head><title>Saved</title></head><body>Saved fixture</body></html>", encoding="utf-8")
     root = tmp_path / "source"
     pilot.capture("https://example.com/", root, fixture)
     return root
@@ -70,6 +74,7 @@ def role(output, manifest, status="complete"):
     return value
 
 
+@POSIX_CAPTURE
 def test_success_requires_role_and_finalization_preserves_evidence(source, tmp_path):
     before = {path.name: path.read_bytes() for path in (source / "capture").iterdir()}
     source_manifest = (source / pilot.MANIFEST).read_bytes()
@@ -88,6 +93,7 @@ def test_success_requires_role_and_finalization_preserves_evidence(source, tmp_p
         visual.finalize(output)
 
 
+@POSIX_CAPTURE
 def test_missing_browser_is_saved_as_partial(source, tmp_path):
     output = tmp_path / "visual"
     manifest = visual.capture(source, output, "/does/not/exist")
@@ -97,6 +103,7 @@ def test_missing_browser_is_saved_as_partial(source, tmp_path):
     assert not visual.doctor("relative-browser")["browser_executable"]
 
 
+@POSIX_CAPTURE
 def test_failed_viewport_stays_partial_with_complete_role(source, tmp_path):
     def partial(*args):
         return fake_worker(*args, missing="mobile")
@@ -106,6 +113,7 @@ def test_failed_viewport_stays_partial_with_complete_role(source, tmp_path):
     assert visual.finalize(output)["phase"] == "partial"
 
 
+@POSIX_CAPTURE
 def test_worker_timeout_even_after_both_viewports_stays_partial(source, tmp_path):
     def timeout(*args):
         fake_worker(*args)
@@ -116,6 +124,7 @@ def test_worker_timeout_even_after_both_viewports_stays_partial(source, tmp_path
 
 
 @pytest.mark.parametrize("name", ["desktop.html", "desktop.png", "render.json", "source_html", "source_manifest", "role", "manifest"])
+@POSIX_CAPTURE
 def test_tampered_artifacts_or_identities_rejected(source, tmp_path, name):
     output, manifest = capture(source, tmp_path)
     role(output, manifest)
@@ -139,16 +148,18 @@ def test_tampered_artifacts_or_identities_rejected(source, tmp_path, name):
         visual.validate(output)
 
 
+@POSIX_CAPTURE
 def test_finalized_report_and_role_are_immutable(source, tmp_path):
     output, manifest = capture(source, tmp_path)
     role(output, manifest)
     visual.finalize(output)
     report = output / "REPORT.md"
-    report.write_text("changed")
+    report.write_text("changed", encoding="utf-8")
     with pytest.raises(visual.VisualError, match="Finalized visual artifact"):
         visual.validate(output)
 
 
+@POSIX_CAPTURE
 def test_symlink_and_existing_output_rejected(source, tmp_path):
     linked = tmp_path / "linked"
     linked.symlink_to(source, target_is_directory=True)
@@ -164,6 +175,7 @@ def test_symlink_and_existing_output_rejected(source, tmp_path):
         visual.validate(output)
 
 
+@POSIX_CAPTURE
 def test_reject_failed_source_before_creating_output(source, tmp_path):
     manifest_path = source / pilot.MANIFEST
     manifest = json.loads(manifest_path.read_bytes())
@@ -187,6 +199,7 @@ def test_png_dimensions_crc_and_decoded_size_are_verified():
         visual._png(data[:50] + bytes([data[50] ^ 1]) + data[51:], viewport)
 
 
+@POSIX_CAPTURE
 def test_diagnostics_and_geometry_bounded(source, tmp_path):
     output, manifest = capture(source, tmp_path)
     metadata = json.loads((output / "render.json").read_bytes())
@@ -194,11 +207,15 @@ def test_diagnostics_and_geometry_bounded(source, tmp_path):
     (output / "render.json").write_bytes(pilot.encode(metadata))
     with pytest.raises(visual.VisualError, match="diagnostics"):
         visual.render_data(output)
+
+
+def test_geometry_and_string_bounds():
     assert not visual._geometry({**entry("desktop")["geometry"], "overflow": [{}] * 21}, visual.VIEWPORTS["desktop"])
     assert not visual.bounded_strings(["x"] * 257)
     assert not visual.bounded_strings(["x" * 10001])
 
 
+@POSIX_CAPTURE
 def test_missing_or_unhashed_artifact_never_complete(source, tmp_path):
     output, manifest = capture(source, tmp_path)
     role(output, manifest)
@@ -207,6 +224,7 @@ def test_missing_or_unhashed_artifact_never_complete(source, tmp_path):
         visual.validate(output)
 
 
+@POSIX_CAPTURE
 def test_source_change_during_worker_rejected(source, tmp_path):
     def change(*args):
         fake_worker(*args)
@@ -216,6 +234,7 @@ def test_source_change_during_worker_rejected(source, tmp_path):
         capture(source, tmp_path, change)
 
 
+@POSIX_CAPTURE
 def test_worker_group_cleanup_success_and_timeout(monkeypatch, tmp_path):
     class FakeProcess:
         pid = 4321
@@ -248,7 +267,7 @@ def test_timeout_kills_actual_worker_descendant(monkeypatch, tmp_path):
     monkeypatch.setattr(visual.subprocess, "Popen", launch)
     try:
         assert "timeout" in visual._run_worker(tmp_path, tmp_path, "/browser", 1)
-        child_pid = int(marker.read_text())
+        child_pid = int(marker.read_text(encoding="utf-8"))
         for _ in range(50):
             try:
                 os.kill(child_pid, 0)
@@ -264,40 +283,47 @@ def test_timeout_kills_actual_worker_descendant(monkeypatch, tmp_path):
     finally:
         if marker.exists():
             try:
-                os.kill(int(marker.read_text()), signal.SIGKILL)
+                os.kill(int(marker.read_text(encoding="utf-8")), signal.SIGKILL)
             except ProcessLookupError:
                 pass
 
 
-def test_isolated_cli_doctor_and_missing_browser_capture(source, tmp_path):
+def test_isolated_cli_doctor_reports_missing_browser():
     script = Path(visual.__file__).absolute()
     doctor = subprocess.run([sys.executable, "-I", "-B", str(script), "doctor", "--browser", "/missing"],
-                            capture_output=True, text=True, timeout=10)
+                            capture_output=True, text=True, encoding="utf-8", timeout=10)
     assert doctor.returncode == 1, doctor.stderr
     assert json.loads(doctor.stdout)["ready"] is False
+
+
+@POSIX_CAPTURE
+def test_isolated_cli_missing_browser_capture(source, tmp_path):
+    script = Path(visual.__file__).absolute()
     output = tmp_path / "isolated-visual"
     captured = subprocess.run([sys.executable, "-I", "-B", str(script), "capture", "--source", str(source),
                                "--output", str(output), "--browser", "/missing", "--timeout", "2"],
-                              capture_output=True, text=True, timeout=10)
+                              capture_output=True, text=True, encoding="utf-8", timeout=10)
     assert captured.returncode == 1, captured.stderr
     result = json.loads(captured.stdout)
     assert result["evidence"]["worker_status"] == "partial"
     checked = subprocess.run([sys.executable, "-I", "-B", str(script), "validate", "--output", str(output)],
-                             capture_output=True, text=True, timeout=10)
+                             capture_output=True, text=True, encoding="utf-8", timeout=10)
     assert checked.returncode == 0, checked.stderr
     assert json.loads(checked.stdout)["complete"] is False
 
 
+@POSIX_CAPTURE
 def test_failed_cli_finalization_has_nonzero_exit_and_retains_report(source, tmp_path):
     output, _ = capture(source, tmp_path)
     result = subprocess.run([sys.executable, "-I", "-B", visual.__file__, "finalize", "--output", str(output)],
-                            capture_output=True, text=True, timeout=10)
+                            capture_output=True, text=True, encoding="utf-8", timeout=10)
     assert result.returncode == 1
     assert json.loads(result.stdout)["phase"] == "partial"
     assert (output / "REPORT.md").is_file()
     assert visual.validate(output)["valid"] is True
 
 
+@POSIX_CAPTURE
 def test_original_charset_recorded_from_verified_transport(source, tmp_path):
     path = source / "capture/transport.json"
     transport = json.loads(path.read_bytes())
@@ -340,7 +366,7 @@ def test_sigterm_supervisor_cleans_worker_and_descendant(tmp_path):
     try:
         for _ in range(100):
             if marker.exists():
-                pids = json.loads(marker.read_text())
+                pids = json.loads(marker.read_text(encoding="utf-8"))
                 break
             if supervisor.poll() is not None:
                 pytest.fail("Supervisor failed before launching the worker")
@@ -362,3 +388,12 @@ def test_sigterm_supervisor_cleans_worker_and_descendant(tmp_path):
                 os.killpg(pids[0], signal.SIGKILL)
             except ProcessLookupError:
                 pass
+
+
+def test_windows_capture_rejected_before_output_creation(tmp_path):
+    source = tmp_path / "unopened-source"
+    output = tmp_path / "uncreated-output"
+    with patch.object(visual.os, "name", "nt"):
+        with pytest.raises(visual.VisualError, match="Windows is unavailable"):
+            visual.capture(source, output, "/browser")
+    assert not output.exists()

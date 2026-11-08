@@ -169,7 +169,7 @@ def test_max_unicode_input_and_default_constraints(tmp_path):
                            criteria=[{"id": "criterion-" + str(i), "label": "雪" * 200, "question": "雪" * 2000} for i in range(10)])
     assert comparison.validate(output)["valid"]
     assert len((output / "input.json").read_bytes()) < comparison.MAX_INPUT
-    assert comparison.normalize(requirements())["constraints"] == []
+    assert comparison.normalize(requirements(sources))["constraints"] == []
 
 
 def test_source_bounds_and_duplicate_urls(tmp_path):
@@ -221,7 +221,7 @@ def test_valid_states_preserved(tmp_path, state):
             cell["evidence"].append(evidence(cell["subject_id"], "Second claim."))
     write_role(output, value)
     assert comparison.finalize(output)["complete"]
-    rendered = (output / "COMPARISON-BRIEF.md").read_text()
+    rendered = (output / "COMPARISON-BRIEF.md").read_text(encoding="utf-8")
     assert comparison.escaped(state) in rendered
 
 
@@ -400,7 +400,7 @@ def test_escaping_and_source_dates(tmp_path):
     value["sections"]["metadata"]["title"] = attack
     write_role(output, value)
     comparison.finalize(output)
-    rendered = (output / "COMPARISON-BRIEF.md").read_text()
+    rendered = (output / "COMPARISON-BRIEF.md").read_text(encoding="utf-8")
     assert '<script>' not in rendered and '![x]' not in rendered and 'https://evil.test' not in rendered
     assert comparison.escaped(attack) in rendered
     assert 'Captured at is ' in rendered and 'Retrieved at is unavailable.' in rendered
@@ -479,10 +479,10 @@ def test_full_grid_boundary_and_same_page_conflicts(tmp_path):
 
 def test_partial_cli_exit_and_preexisting_report(tmp_path):
     _, output, _ = prepare(tmp_path)
-    (output / "COMPARISON-BRIEF.md").write_text("Preserve this report")
+    (output / "COMPARISON-BRIEF.md").write_text("Preserve this report", encoding="utf-8")
     with pytest.raises(comparison.ComparisonError, match="refusing overwrite"):
         comparison.finalize(output)
-    assert (output / "COMPARISON-BRIEF.md").read_text() == "Preserve this report"
+    assert (output / "COMPARISON-BRIEF.md").read_text(encoding="utf-8") == "Preserve this report"
     (output / "COMPARISON-BRIEF.md").unlink()
     result = subprocess.run([sys.executable, comparison.__file__, "finalize", "--output", str(output)],
                             capture_output=True, text=True)
@@ -519,6 +519,6 @@ def test_side_by_side_matrix_preserves_pending_cells(tmp_path):
     value["matrix"].pop()
     write_role(output, value)
     comparison.finalize(output)
-    rendered = (output / "COMPARISON-BRIEF.md").read_text()
+    rendered = (output / "COMPARISON-BRIEF.md").read_text(encoding="utf-8")
     assert "| Criterion | One | Two |" in rendered
     assert "| Offer | source&#95;claim. The source claims an offer&#46; | pending. Native review is pending&#46; |" in rendered

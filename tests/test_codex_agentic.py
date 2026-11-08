@@ -290,7 +290,7 @@ def test_implementation_provenance_checked(tmp_path, monkeypatch):
     original = agentic.file_record
     def changed(path):
         result = original(path)
-        if str(path).endswith("scripts/lighthouse_agentic.py"):
+        if Path(path).as_posix().endswith("scripts/lighthouse_agentic.py"):
             result["sha256"] = "0" * 64
         return result
     monkeypatch.setattr(agentic, "file_record", changed)
@@ -318,7 +318,7 @@ def test_untrusted_text_display_does_not_create_markup(tmp_path):
     finding["findings"] = ["<img src=x>\n# pretend heading [click](https://bad.test)"]
     (output / "findings/agentic.json").write_bytes(pilot.encode(finding))
     agentic.finalize(output)
-    report_text = (output / "REPORT.md").read_text()
+    report_text = (output / "REPORT.md").read_text(encoding="utf-8")
     assert "<script>" not in report_text and "<img" not in report_text
     assert "\n# pretend heading" not in report_text and "[click]" not in report_text
 
