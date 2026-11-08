@@ -158,3 +158,28 @@ def test_private_literal_is_refused_before_network_request():
 def test_invalid_port_is_reported_without_crashing():
     result = discovery.discover_sitemaps("https://example.com:invalid/")
     assert result["error"] == "Target URL contains an invalid port"
+
+
+def test_secure_xml_seam_rejects_encoded_doctype_and_entities():
+    for encoding in ("utf-8", "utf-16", "utf-16-be", "utf-32"):
+        content = ('<?xml version="1.0"?><!DOCTYPE urlset [<!ENTITY x SYSTEM "file:///etc/passwd">]>'
+                   '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"><url><loc>&x;</loc></url></urlset>').encode(encoding)
+        try:
+            discovery.parse_sitemap_xml(content)
+        except ValueError:
+            pass
+        else:
+            raise AssertionError("Encoded DTD/entity document was accepted")
+        assert discovery._sitemap_kind(content, "application/xml", "https://example.com/sitemap.xml")[0] is None
+
+
+def test_secure_xml_seam_accepts_utf16_and_never_processes_xinclude():
+    content = '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9"/>'.encode("utf-16")
+    assert discovery._sitemap_kind(content, "application/xml", "https://example.com/sitemap.xml") == ("urlset", None)
+    included = b'<urlset xmlns:xi="http://www.w3.org/2001/XInclude"><xi:include href="file:///etc/passwd"/></urlset>'
+    try:
+        discovery.parse_sitemap_xml(included)
+    except ValueError as exc:
+        assert "XInclude" in str(exc)
+    else:
+        raise AssertionError("XInclude accepted")

@@ -58,6 +58,28 @@ def test_route_never_looks_up_auth_or_runs_network():
             assert audit.route(workflow)["status"] == "unavailable"
 
 
+def test_sitemap_route_requires_complete_optional_payload_without_network(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("sitemap")["status"] == "unavailable"
+        paths = ("scripts/codex_sitemap.py", "scripts/sitemap_discovery.py",
+                 ".codex/agents/seo-codex-sitemap.toml",
+                 ".agents/skills/seo-codex-sitemap/SKILL.md",
+                 ".agents/skills/seo-codex-sitemap/references/review.md")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("sitemap") == {
+            "status": "available", "workflow": "sitemap",
+            "skill": "seo-codex-sitemap", "focus": "saved-xml-analysis"
+        }
+        (tmp_path / paths[1]).unlink()
+        assert audit.route("sitemap")["status"] == "unavailable"
+        assert "sitemap" not in audit.SUPPORTED_ROLES
+
+
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):

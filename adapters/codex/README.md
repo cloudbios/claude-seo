@@ -122,6 +122,11 @@ The pilot has no automatic hook installation, full-site crawl, paid data source,
 image generation, URL submission, baseline database or installation migration.
 Future suite-wide work is tracked in the compatibility audit and pilot plan.
 
+The optional [saved XML sitemap adapter](../../docs/codex/sitemap-analysis.md)
+adds a separate structural review and comparison with up to five verified
+page captures. Stage it with `--sitemap-analysis`; it does not discover,
+fetch, generate or submit sitemaps.
+
 The next [runtime and schema-feedback foundation](../../docs/codex/runtime-foundation.md)
 adds optional staging flags for explicit runtime isolation and a reviewable
 local hook definition. It does not change the default pilot installation.

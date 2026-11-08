@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -199,6 +199,46 @@ class StagePilotTests(unittest.TestCase):
         self.assertFalse((self.output / ".codex/agents/seo-codex-visual.toml").exists())
         config = tomllib.loads((self.output / ".codex/config.toml").read_text())
         self.assertNotIn("seo-codex-visual", config["agents"])
+        self.assertNotIn("seo-codex-sitemap", config["agents"])
+        self.assertFalse((self.output / "scripts/codex_sitemap.py").exists())
+
+    def test_sitemap_option_is_scoped_and_independent_of_visual(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    sitemap_analysis=True, register_agents=True)
+        self.assertEqual(len(manifest["files"]), 27)
+        added = {r["destination"] for r in manifest["files"]} - {
+            dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(added, {"scripts/codex_sitemap.py", "scripts/sitemap_discovery.py",
+                                ".codex/agents/seo-codex-sitemap.toml",
+                                ".agents/skills/seo-codex-sitemap/SKILL.md",
+                                ".agents/skills/seo-codex-sitemap/references/review.md"})
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
+            "seo-codex-images", "seo-codex-sitemap"
+        })
+        self.assertFalse((self.output / "scripts/codex_visual.py").exists())
+        self.assertFalse((self.output / "scripts/google_auth.py").exists())
+        for row in manifest["files"] + manifest["generated_files"]:
+            self.assertEqual(row["sha256"], hashlib.sha256(
+                (self.output / row["destination"]).read_bytes()).hexdigest())
+        self.assertIn("Do not run discovery", (self.output / "AGENTS.md").read_text())
+
+    def test_optional_adapters_can_be_staged_together_without_duplicates(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    sitemap_analysis=True, visual_evidence=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 32)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(len(config["agents"]), 6)
+
+    def test_missing_sitemap_parser_leaves_no_output(self):
+        (self.source / "scripts/sitemap_discovery.py").unlink()
+        with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+            stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True)
+        self.assertFalse(self.output.exists())
 
     def test_missing_core_reference_leaves_no_output(self):
         (self.source / "adapters/codex/skills/seo-codex-audit/references/synthesis.md").unlink()
