@@ -143,6 +143,9 @@ def check_script_refs(files, texts):
             if f == "tests/test_codex_pilot.py" and m == "source.py":
                 # The staged-provenance test creates this file in its temp tree.
                 continue
+            if f == "tests/test_codex_package.py" and m == "tool.py":
+                # The package rejection test creates an untracked dummy tool.
+                continue
             mentioned.add(m)
             candidates = [f"scripts/{m}"]
             if ext_root:

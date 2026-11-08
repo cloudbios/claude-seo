@@ -85,7 +85,7 @@ Sensitive credential-file references must resolve inside its `config/` tree.
 | Image generation | A configured generation connector or the Banana helpers with an explicit Google AI key. Generation has authorization and cost gates. |
 | Ahrefs and Firecrawl | An available authenticated connector with the requested capability. Discover its actual tool schema at runtime. |
 | Profound and SE Ranking | An available authenticated connector or a currently verified official API contract. Upstream resources supply workflow recipes. Live collection depends on an executable provider capability. |
-| Unlighthouse | Available Node and Unlighthouse prerequisites for the bundled runner. |
+| Unlighthouse | Available Node and a prepared npm cache. Explicit `run --allow-install` authorizes the pinned package download; ordinary runs are offline and disable install hooks. |
 
 Provider names and example tool names are discovery hints. Verify the actual
 connector schema, account access, costs, and returned fields. Report missing

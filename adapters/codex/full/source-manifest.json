@@ -700,7 +700,7 @@
     },
     {
       "destination": "extensions/banana/docs/BANANA-SETUP.md",
-      "sha256": "394cde6450910065488b0286269246cd6170e2277af7e9e5f504a48459e51782",
+      "sha256": "9f698584df7c97c4597c40c46121641654c0038446686830e00a60ca8cc715d5",
       "source": "extensions/banana/docs/BANANA-SETUP.md",
       "source_sha256": "4389ea2d9c7ac1ff5fc102fb574eb8456e35bec395273de59be29b27d6415238"
     },
@@ -814,7 +814,7 @@
     },
     {
       "destination": "extensions/banana/skills/seo-image-gen/SKILL.md",
-      "sha256": "f4d6d30ae57c05e8debd2acb6543219d14d625106a7f0b86f91218a0786d27e9",
+      "sha256": "babbbbc6d553097807a6b9192842d1035b28c1cb1af1b2cea1ffca67d7c37e00",
       "source": "extensions/banana/skills/seo-image-gen/SKILL.md",
       "source_sha256": "c2de68b3126a2affbc70503fb6920b6dc8a541ca2c7fffaa9833200106118e69"
     },
@@ -1858,7 +1858,7 @@
     },
     {
       "destination": "skills/seo-codex-image-gen/methodology.md",
-      "sha256": "f0d297d95d47b88ebfdd6f1da0495e7e2f288d955484c2ae64a27718cb384826",
+      "sha256": "10907c3235f14e6005948194e9d832b24abeb2c752517ba128892356aecbb301",
       "source": "extensions/banana/skills/seo-image-gen/SKILL.md",
       "source_sha256": "c2de68b3126a2affbc70503fb6920b6dc8a541ca2c7fffaa9833200106118e69"
     },

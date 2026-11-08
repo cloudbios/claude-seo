@@ -82,7 +82,7 @@ these names are not automatic tool aliases.
 
 Claude SEO is a Tier 4 SEO analysis skill with 26 sub-skills (22 core + 1 orchestrator +
 1 framework integration + 2 extension mirrors), 19 sub-agents (16 core + 1 framework
-integration + 2 extension mirrors), and 73 Python execution scripts.
+integration + 2 extension mirrors), and 79 Python execution scripts.
 
 Those counts describe the upstream edition. The full Codex edition has 35
 generated skills and 34 native profiles. The earlier bounded pilot remains in
@@ -200,7 +200,7 @@ skills/                    # 26 sub-skills (auto-discovered)
   seo-dataforseo/         # DataForSEO (extension)
   seo-image-gen/          # AI images (extension)
 agents/                    # 19 subagents
-scripts/                   # 73 Python scripts, including runtime and Codex adapter tools
+scripts/                   # 79 Python scripts, including runtime and Codex adapter tools
 schema/                    # JSON-LD templates
 extensions/                # 9 MCP extensions: DataForSEO, Firecrawl, Banana, Ahrefs, SE Ranking, Profound, Bing Webmaster, Matomo, Unlighthouse
 adapters/codex/full/        # Generated Codex skills, native profiles, resources, provenance

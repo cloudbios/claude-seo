@@ -43,7 +43,7 @@ Run the validation script:
 
 Or check manually:
 1. `ls __CODEX_SEO_SKILLS_ROOT__/seo-codex-image-gen/SKILL.md`:skill file exists
-2. `ls ~/.claude/agents/seo-full-image-gen.md`:agent file exists
+2. `ls ~/.claude/__CODEX_SEO_ROOT__/agents/seo-full-image-gen.toml`:agent file exists
 3. `grep nanobanana ~/.claude.json`:MCP configured
 
 ## Common Issues

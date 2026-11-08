@@ -96,6 +96,7 @@ def adapt(text: str) -> str:
         line = re.sub(r"seo-codex-([a-z-]+)(?= (?:agent|specialist)\b)", r"seo-full-\1", line)
         lines.append(line)
     text = "".join(lines)
+    text = re.sub(r"agents/(seo-full-[a-z-]+)\.md", r"__CODEX_SEO_ROOT__/agents/\1.toml", text)
     return text
 
 

@@ -24,7 +24,7 @@ an available standalone AI image generation skill.
 
 This skill has two components with distinct roles:
 - **SKILL.md** (this file): Handles interactive `$seo-codex-image-gen` commands for generating images
-- **Agent** (`agents/seo-full-image-gen.md`): Audit-only analyst spawned during `$seo-full-audit` to assess existing OG/social images and produce a generation plan (never auto-generates)
+- **Agent** (`__CODEX_SEO_ROOT__/agents/seo-full-image-gen.toml`): Audit-only analyst spawned during `$seo-full-audit` to assess existing OG/social images and produce a generation plan (never auto-generates)
 
 ## Prerequisites
 
