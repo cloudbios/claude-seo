@@ -62,7 +62,7 @@ REDACTIONS = (
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "<redacted-email>"),
     (re.compile(r"(?i)(token|password|secret|api[_-]?key)([=:\s]+)[^\s]+"), r"\1\2<redacted>"),
 )
-CODEX_ALLOWED_SCRIPTS = frozenset({"codex_pilot.py", "codex_audit.py", "codex_visual.py", "codex_sitemap.py", "codex_agentic.py", "codex_brief.py", "codex_plan.py", "codex_drift.py"})
+CODEX_ALLOWED_SCRIPTS = frozenset({"codex_pilot.py", "codex_audit.py", "codex_visual.py", "codex_sitemap.py", "codex_agentic.py", "codex_brief.py", "codex_plan.py", "codex_drift.py", "codex_programmatic.py"})
 
 
 def _codex_paths(args: argparse.Namespace) -> dict[str, Path]:
@@ -101,7 +101,7 @@ def _codex_env(paths: dict[str, Path]) -> dict[str, str]:
 
 def _codex_script(root: Path, name: str, extension: str | None) -> Path:
     if extension is not None or name not in CODEX_ALLOWED_SCRIPTS:
-        raise ValueError("Codex prepared runtime permits only codex_pilot.py, codex_audit.py, codex_visual.py, codex_sitemap.py, codex_agentic.py, codex_brief.py, codex_plan.py and codex_drift.py; "
+        raise ValueError("Codex prepared runtime permits only codex_pilot.py, codex_audit.py, codex_visual.py, codex_sitemap.py, codex_agentic.py, codex_brief.py, codex_plan.py, codex_drift.py and codex_programmatic.py; "
                          "providers and extensions are unavailable")
     candidate = root / "scripts" / name
     if ((root / "scripts").is_symlink() or candidate.is_symlink() or not candidate.is_file()

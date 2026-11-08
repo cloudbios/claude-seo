@@ -82,10 +82,10 @@ in each staged copy.
 The current stage copies 34 files and registers seven profiles. The strategy
 batch extracted one shared evidence helper used by both planning workflows;
 the brief's commands, nine-section result and output names are unchanged.
-The core sampled audit retains six roles. The first six optional workflows
+The core sampled audit retains six roles. Standalone optional workflows
 each contribute five files and one role. GEO adds four files and one role,
 and the planning helper is copied once when needed.
-Enabling all seven optional workflows copies 63 files with thirteen roles;
+Enabling all eight optional workflows copies 68 files with fourteen roles;
 brief and strategy together copy 39 files. The default pilot remains eight files.
 
 Use the supplied prepared runtime and absolute dedicated state root:
