@@ -5,8 +5,8 @@
 -->
 
 > **Codex adaptation in this fork:** the one-page pilot and runtime foundation
-> are verified. The next bounded adapter adds routing and sampled technical/schema
-> audits of 1–5 explicit pages. See [Codex adapter](adapters/codex/README.md) and
+> are verified. An optional bounded adapter adds routing and sampled technical/schema
+> audits of 1–5 explicit pages, with a two-session CLI resume test. See [Codex adapter](adapters/codex/README.md) and
 > [core orchestration](docs/codex/core-orchestration.md) for scope and validation.
 > The upstream installation instructions below still describe Claude Code.
 

@@ -93,10 +93,13 @@ An interrupted run resumes in its existing directory. Reconcile before
 scheduling more work. Never release an uncertain active reservation solely
 because its result exists or enough time has passed. Confirm the native
 process stopped first. Already attempted incomplete reviews require explicit
-resume/retry intent; the default scheduling pass does not retry them.
+resume/retry intent and `next --resume-incomplete`; the default scheduling pass
+does not retry them. Each task may be attempted only once per invocation.
 
 Reports are immutable numbered snapshots under `reports/`; an incomplete
 snapshot can be followed by a completed one without rewriting its history.
+If a report write succeeded but its ledger save was interrupted, a byte-identical
+orphan snapshot can be adopted. A differing orphan is preserved and refused.
 The coordinator writes `ACTION-PLAN.md` from the selected snapshot using the
 included synthesis guidance: evidence, uncertainty, remedy, dependencies,
 falsification/check and next indicator. Findings remain recommendations;
@@ -110,7 +113,77 @@ signatures against an attacker who can rewrite all artifacts and hashes.
 
 ## Validation
 
-Validation results and exact tested source identities are recorded here after
-the integration and native orchestration checks complete. Existing pilot and
-foundation acceptance applies only to their documented cases; it does not
-establish acceptance of this new coordinator or additional host versions.
+Implementation revision: `4064e73e808f5be0d51f97b2a925aa40a11e6e9e`.
+Date: November 8, 2026 (America/Los_Angeles).
+
+- 386 selected tests passed using Python 3.12.14 and pytest 8.4.2. These cover
+  the coordinator, pilot, staging, runtime/state policy, URL safety, hooks,
+  legacy runtime/installers, portability, supported Python and manifest
+  consistency.
+- Ruff 0.17.1 passed for the changed Python files, and skill-creator validation
+  passed for both new skills.
+- Independent review reproduced and corrected three defects: automatic
+  rescheduling of partial jobs, adoption of the wrong fixture during resume,
+  and an interrupted report save blocking the next snapshot. Regression
+  tests pass and the final source re-review found no remaining required fixes.
+
+### Native acceptance
+
+The test uses an isolated staged project and two supplied HTML fixtures.
+All fourteen copied payloads match the implementation revision above; both
+generated files match their recorded hashes. The staged manifest SHA-256 is
+`75538a67def72375447c07dece2c364b102b175f08f8275e280982bd190dcba7`.
+Its caller-supplied source-ref label is not itself a revision proof.
+
+Host: macOS, `codex-cli 0.154.0-alpha.6.2`, workspace-write sandbox, explicit
+per-run native role registration, `gpt-5.6-sol` with high reasoning. This is the
+available model used by the earlier CLI acceptance; persistent settings were
+not changed. This new run is not desktop discovery acceptance.
+
+Session 1 completed both native roles for page 1, released their reservations
+after observing termination, and stopped with both page-2 tasks pending.
+With two active reservations, `next` returned no jobs despite two reported
+host slots. The unsupported `google` route remained unavailable.
+Two immutable partial snapshots were retained. Partial reports exit 1 by
+design; both successful captures exited 0 while review was still pending.
+
+| Fixture | Captured HTML SHA-256 | Bytes | Automated schema check |
+| --- | --- | ---: | --- |
+| Page 1: noindex, graph/type array, untrusted instruction comment | `d1d5d7dd81f0f376ca3086a1e5ec4d379fe1f7f05f88d5b777e120a57d460c77` | 630 | passed |
+| Page 2: malformed JSON-LD | `1dea0a113a4e93e9327b2d813bdcbec18257921ad607e09ac79d37c7b0eca4c1` | 463 | failed |
+
+An independent review of both pages found the role findings grounded in the
+saved fields/excerpts, with fixture and rendering limits retained. The
+untrusted instruction comment was not adopted.
+
+An independent second coordinator session resumed the same audit and selected
+only the two never-started page-2 tasks. Both exact native roles completed.
+All four tasks had one start each and zero active reservations at completion.
+Fourteen checkpoint files, including both captures, page-1 findings and the
+first two report snapshots, retained identical hashes across the resume.
+The final snapshot `reports/0003.md` has SHA-256
+`4ffd0c2cf7556c7dad923751640e3d94056f66aa4eb264eb0aa9bc37bcee3228`.
+
+The final report retains page 2's failed schema check despite the completed
+review. The independently reviewed `ACTION-PLAN.md` cites that snapshot and
+per-page evidence, distinguishes assumptions from observed facts, and
+includes remedies, dependencies and verification steps. No page-pilot
+manifest was finalized or rewritten.
+
+The second session attempted overlapping release commands; the exclusive
+lock rejected one, and the coordinator successfully repeated that unchanged
+operation sequentially after the other finished. A subsequent skill-only
+clarification explicitly requires serial ledger mutations. That clarification
+passed skill validation; the runtime tested at the implementation revision
+above is unchanged.
+
+The native API exposed canonical role handles, not separate UUIDs; the local
+receipts preserve that limitation. Host startup logged unrelated configured
+connector failures. No provider tool was invoked for the audit.
+
+The local acceptance receipt, both native-session receipts and raw fixture
+artifacts remain in the isolated test project. Raw session logs and captures
+are not committed. This test covers supplied-HTML orchestration and resume
+on the recorded CLI; live multi-page HTTP, new desktop discovery, remaining
+specialists/providers, Windows execution and global installation are outside
+this acceptance.

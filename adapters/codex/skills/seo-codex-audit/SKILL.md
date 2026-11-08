@@ -45,6 +45,9 @@ an explicit sample, explain the coverage and obtain that sample first.
 
 ## Schedule native reviews
 
+Serialize `capture`, `start`, `reconcile`, `release` and `report` commands for
+the same audit directory; parallelize only the native reviews.
+
 Use the helper's task descriptors; do not invent task IDs, paths, role names
 or capture hashes. Each descriptor includes `task_id`, `agent_type`,
 `output_dir`, `result_file`, `capture_sha256` and `reservation`. Give the exact
