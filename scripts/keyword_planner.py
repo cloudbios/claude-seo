@@ -31,6 +31,8 @@ import os
 import sys
 from typing import Optional
 
+from codex_paths import config_path, credential_path
+
 try:
     from google.ads.googleads.client import GoogleAdsClient
     from google.ads.googleads.errors import GoogleAdsException
@@ -87,12 +89,12 @@ def _build_ads_client() -> Optional[object]:
             ads_config["login_customer_id"] = login_customer_id
 
         # Try to use OAuth token if available
-        token_path = os.path.expanduser("~/.config/claude-seo/oauth-token.json")
+        token_path = str(config_path("oauth-token.json", "~/.config/claude-seo/oauth-token.json"))
         if os.path.exists(token_path):
             with open(token_path) as f:
                 token_data = json.load(f)
             if oauth_client_path:
-                with open(os.path.expanduser(oauth_client_path)) as f:
+                with open(credential_path(oauth_client_path)) as f:
                     client_data = json.load(f)
                 client_info = client_data.get("web", client_data.get("installed", {}))
                 ads_config["client_id"] = client_info.get("client_id")

@@ -20,6 +20,8 @@ import json
 import sys
 import time
 
+from codex_paths import cache_path
+
 try:
     import requests
 except ImportError:
@@ -44,7 +46,7 @@ MOZ_BASE = "https://api.moz.com"
 
 # Conservative default delay; verify current Moz plan limits.
 RATE_LIMIT_DELAY = 10
-RATE_LIMIT_FILE = os.path.expanduser("~/.cache/claude-seo/moz_last_request.lock")
+RATE_LIMIT_FILE = str(cache_path("moz_last_request.lock", "~/.cache/claude-seo/moz_last_request.lock"))
 
 
 def _moz_basic_auth_header(api_key: str) -> str | None:

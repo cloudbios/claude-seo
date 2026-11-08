@@ -56,5 +56,5 @@ must observe your actual terminal state before finalizing REPORT.md.
 
 This profile is newly authored for the adapter. Methodology is adapted under
 MIT from skills/seo-programmatic/SKILL.md. There is no upstream
-agents/seo-programmatic.md.
+dedicated programmatic agent file.
 """

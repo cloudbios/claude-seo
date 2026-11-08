@@ -84,7 +84,7 @@ actual author termination before finalizing COMPARISON-BRIEF.md.
 
 This profile is newly authored for the adapter. Methodology is adapted under
 MIT from skills/seo-competitor-pages/SKILL.md. There is no upstream
-agents/seo-competitor-pages.md. The methodology's Google review guidance
+dedicated competitor-pages agent file. The methodology's Google review guidance
 supports user criteria and evidence quality, not verification of subject
 claims or hands-on experience.
 """

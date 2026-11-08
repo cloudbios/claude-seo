@@ -35,6 +35,7 @@ _SCRIPTS_DIR = os.path.dirname(os.path.abspath(__file__))
 if _SCRIPTS_DIR not in sys.path:
     sys.path.insert(0, _SCRIPTS_DIR)
 
+from codex_paths import codex_active, config_path  # noqa: E402
 from url_safety import (  # noqa: E402  (path bootstrap must run first)
     URLSafetyError,
     is_safe_ip,
@@ -52,7 +53,7 @@ except ImportError as _import_exc:  # pragma: no cover - hard dependency
         "Install with: pip install -r requirements.txt"
     ) from _import_exc
 
-CONFIG_PATH = os.path.expanduser("~/.config/claude-seo/matomo.json")
+CONFIG_PATH = str(config_path("matomo.json", "~/.config/claude-seo/matomo.json"))
 DEFAULT_TIMEOUT = 15
 USER_AGENT = "ClaudeSEO/2.3.0"
 LOCAL_TARGETS_ENV = "CLAUDE_SEO_LOCAL_TARGETS"
@@ -510,6 +511,9 @@ def get_matomo_site_id() -> Optional[str]:
 
 
 def print_setup_instructions() -> None:
+    if codex_active():
+        print('Configure config/matomo.json under the explicit Codex state root with matomo_url, matomo_token, and matomo_site_id (see --check). Explicit MATOMO_URL, MATOMO_API_TOKEN, and MATOMO_SITE_ID are also supported. No legacy credentials are imported.')
+        return
     """Print step-by-step setup instructions for Matomo."""
     print(f"""
 Matomo Setup Instructions

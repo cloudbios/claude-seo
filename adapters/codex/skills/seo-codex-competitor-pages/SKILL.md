@@ -70,6 +70,6 @@ present-day accuracy or original hands-on experience.
 
 Adapted under the included MIT notice from AgriciDaniel and contributors'
 `skills/seo-competitor-pages/SKILL.md`. The native profile is newly authored for
-this adapter. Upstream has no `agents/seo-competitor-pages.md`. This adaptation
+this adapter. Upstream has no `dedicated competitor-pages agent file`. This adaptation
 uses saved-source claims and a publication-verification handoff, excluding
 unsupported ratings, schema, keyword-volume claims and word-count floors.

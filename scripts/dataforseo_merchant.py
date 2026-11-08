@@ -73,8 +73,17 @@ POLL_MAX_ATTEMPTS = 15
 
 def _get_credentials() -> tuple[str, str]:
     """Read DataForSEO credentials from environment variables."""
-    username = os.environ.get("DATAFORSEO_USERNAME", "")
-    password = os.environ.get("DATAFORSEO_PASSWORD", "")
+    from codex_paths import codex_active, config_path
+    config = {}
+    if codex_active():
+        path = config_path("dataforseo.json")
+        if path.is_file():
+            try:
+                config = json.loads(path.read_text(encoding="utf-8"))
+            except (OSError, ValueError):
+                raise ValueError("Invalid explicit dataforseo.json configuration")
+    username = config.get("username") or os.environ.get("DATAFORSEO_USERNAME", "")
+    password = config.get("password") or os.environ.get("DATAFORSEO_PASSWORD", "")
     if not username or not password:
         print(
             "Error: DATAFORSEO_USERNAME and DATAFORSEO_PASSWORD environment "

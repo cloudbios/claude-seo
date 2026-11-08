@@ -16,7 +16,15 @@ import re
 import sys
 from pathlib import Path
 
-PRESETS_DIR = Path.home() / ".banana" / "presets"
+# The explicit bundled root also supports direct extension invocation.
+try:
+    from codex_paths import codex_active, config_path, require_write
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    from codex_paths import codex_active, config_path, require_write
+
+
+PRESETS_DIR = config_path("banana/presets", Path.home() / ".banana" / "presets")
 
 
 def _ensure_dir():
@@ -52,7 +60,8 @@ def _load_preset(name):
 
 def cmd_list(args):
     """List available presets."""
-    _ensure_dir()
+    if not codex_active():
+        _ensure_dir()
     presets = sorted(PRESETS_DIR.glob("*.json"))
     if not presets:
         print("No presets found. Create one with: presets.py create NAME --style \"...\"")
@@ -76,6 +85,7 @@ def cmd_show(args):
 
 def cmd_create(args):
     """Create a new preset."""
+    require_write()
     _ensure_dir()
     path = _preset_path(args.name)
     if path.exists():
@@ -105,6 +115,7 @@ def cmd_create(args):
 
 def cmd_delete(args):
     """Delete a preset."""
+    require_write()
     if not args.confirm:
         print("Error: Pass --confirm to delete the preset.", file=sys.stderr)
         sys.exit(1)

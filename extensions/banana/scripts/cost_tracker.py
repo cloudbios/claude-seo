@@ -20,6 +20,14 @@ from contextlib import contextmanager
 from datetime import datetime, timezone
 from pathlib import Path
 
+# The explicit bundled root also supports direct extension invocation.
+try:
+    from codex_paths import cache_path, config_path, require_write
+except ImportError:
+    sys.path.insert(0, str(Path(__file__).resolve().parents[3] / "scripts"))
+    from codex_paths import cache_path, config_path, require_write
+
+
 try:
     import fcntl
 except ImportError:
@@ -33,10 +41,10 @@ except ImportError:
 # BANANA_HOME lets tests (and anyone running an isolated budget) point the
 # ledger and pricing config somewhere other than the real ones. Resolved at
 # import.
-BANANA_DIR = Path(os.environ.get("BANANA_HOME") or Path.home() / ".banana")
+BANANA_DIR = cache_path("banana", os.environ.get("BANANA_HOME") or Path.home() / ".banana")
 LEDGER_PATH = BANANA_DIR / "costs.json"
 LOCK_PATH = BANANA_DIR / "costs.lock"
-PRICING_PATH = BANANA_DIR / "pricing.json"
+PRICING_PATH = config_path("banana/pricing.json", BANANA_DIR / "pricing.json")
 PRICING_SOURCE = "https://ai.google.dev/gemini-api/docs/pricing"
 
 
@@ -201,6 +209,7 @@ def _lookup_cost(model, resolution, batch=False):
 
 
 def cmd_log(args):
+    require_write()
     """Log a generation to the ledger."""
     cost, checked_date = _lookup_cost(args.model, args.resolution, getattr(args, "batch", False))
     today = datetime.now(timezone.utc).strftime("%Y-%m-%d")
@@ -279,6 +288,7 @@ def cmd_estimate(args):
 
 
 def cmd_reset(args):
+    require_write()
     """Reset the ledger."""
     if not args.confirm:
         print("Error: Pass --confirm to reset the cost ledger.", file=sys.stderr)

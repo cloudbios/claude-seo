@@ -329,9 +329,9 @@ def report(manifest: dict, requirements: dict, role: dict | None, complete: bool
     lines.extend("- " + escaped(item) for item in requirements["constraints"])
     lines.extend(["", "## Subjects and criteria", ""])
     for subject in requirements["subjects"]:
-        lines.append("- " + escaped(subject["id"]) + " — " + escaped(subject["name"]))
+        lines.append("- " + escaped(subject["id"]) + ": " + escaped(subject["name"]))
     for criterion in requirements["criteria"]:
-        lines.append("- " + escaped(criterion["id"]) + " — " + escaped(criterion["label"]) + ". " + escaped(criterion["question"]))
+        lines.append("- " + escaped(criterion["id"]) + ": " + escaped(criterion["label"]) + ". " + escaped(criterion["question"]))
     lines.extend(["", "## Saved source registry", ""])
     for source in manifest["evidence"]["sources"]:
         transport = decode(pilot.read_bytes(Path(source["capture"]) / "capture/transport.json"))

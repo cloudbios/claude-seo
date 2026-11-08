@@ -62,6 +62,6 @@ data and logic that generated the pages.
 
 Adapted under the included MIT notice from AgriciDaniel and contributors'
 `skills/seo-programmatic/SKILL.md`. The standalone native profile is new to
-this adapter. Upstream has no `agents/seo-programmatic.md`. This adaptation
+this adapter. Upstream has no `dedicated programmatic agent file`. This adaptation
 uses qualitative saved-source review and excludes upstream numerical quality
 gates, scores, enforcement statistics and automatic index-management actions.

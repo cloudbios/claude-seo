@@ -34,6 +34,8 @@ from contextlib import contextmanager
 from datetime import datetime, timedelta
 from pathlib import Path
 
+from codex_paths import codex_active, config_path
+
 try:
     import fcntl
 except ImportError:
@@ -47,9 +49,7 @@ except ImportError:
 # ----- paths -----
 # CLAUDE_SEO_CONFIG_DIR lets tests (and anyone running an isolated budget) point
 # the ledger somewhere other than the real one. Resolved at import.
-CONFIG_DIR = Path(
-    os.environ.get("CLAUDE_SEO_CONFIG_DIR") or Path.home() / ".config" / "claude-seo"
-)
+CONFIG_DIR = config_path("", os.environ.get("CLAUDE_SEO_CONFIG_DIR") or Path.home() / ".config" / "claude-seo")
 CONFIG_FILE = CONFIG_DIR / "dataforseo-costs.json"
 LEDGER_FILE = CONFIG_DIR / "dataforseo-ledger.json"
 LOCK_FILE = CONFIG_DIR / "dataforseo-ledger.lock"
@@ -310,6 +310,14 @@ def cmd_estimate(args):
 
 
 def _credentials_in_env():
+    if codex_active():
+        path = config_path("dataforseo.json")
+        try:
+            config = json.loads(path.read_text(encoding="utf-8"))
+            if isinstance(config, dict) and config.get("username") and config.get("password"):
+                return True
+        except (OSError, ValueError):
+            pass
     return bool(os.environ.get("DATAFORSEO_USERNAME") and os.environ.get("DATAFORSEO_PASSWORD"))
 
 
