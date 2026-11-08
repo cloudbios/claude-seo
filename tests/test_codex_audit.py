@@ -102,6 +102,28 @@ def test_agentic_route_requires_complete_optional_payload_without_network(tmp_pa
         assert "agentic" not in audit.SUPPORTED_ROLES
 
 
+def test_content_brief_route_requires_complete_payload_without_research(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("dependencies")), \
+            patch.object(socket, "getaddrinfo", side_effect=AssertionError("network")):
+        assert audit.route("content-brief")["status"] == "unavailable"
+        paths = ("scripts/codex_brief.py", ".codex/agents/seo-codex-content-brief.toml",
+                 ".agents/skills/seo-codex-content-brief/SKILL.md",
+                 ".agents/skills/seo-codex-content-brief/references/review.md",
+                 ".agents/skills/seo-codex-content-brief/LICENSE.txt")
+        for path in paths:
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("content-brief") == {
+            "status": "available", "workflow": "content-brief",
+            "skill": "seo-codex-content-brief", "focus": "supplied-evidence-planning"
+        }
+        (tmp_path / paths[-1]).unlink()
+        assert audit.route("content-brief")["status"] == "unavailable"
+        assert "content-brief" not in audit.SUPPORTED_ROLES
+
+
 def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
     monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
     with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):

@@ -33,6 +33,7 @@ def fixture_source(tmp_path, monkeypatch):
     (root / "scripts/codex_visual.py").write_text("pass\n")
     (root / "scripts/codex_sitemap.py").write_text("pass\n")
     (root / "scripts/codex_agentic.py").write_text("pass\n")
+    (root / "scripts/codex_brief.py").write_text("pass\n")
     monkeypatch.setattr(runtime, "_root", lambda: root)
     return root
 
@@ -80,7 +81,7 @@ def test_codex_audit_dispatch_is_explicit_and_uses_same_boundary(tmp_path, monke
     assert run.call_args.args[0] == [sys.executable, "-I", "-B", str(root / "scripts/codex_audit.py"),
                                     "route", "audit"]
     assert run.call_args.kwargs["env"]["CODEX_SEO_STATE_ROOT"] == str(tmp_path / "state")
-    assert runtime.CODEX_ALLOWED_SCRIPTS == {"codex_pilot.py", "codex_audit.py", "codex_visual.py", "codex_sitemap.py", "codex_agentic.py"}
+    assert runtime.CODEX_ALLOWED_SCRIPTS == {"codex_pilot.py", "codex_audit.py", "codex_visual.py", "codex_sitemap.py", "codex_agentic.py", "codex_brief.py"}
 
 
 def test_visual_dispatch_requires_explicit_staged_script(tmp_path, monkeypatch):
@@ -117,6 +118,19 @@ def test_agentic_dispatch_requires_explicit_staged_script(tmp_path, monkeypatch)
         assert runtime.command_run(call) == 0
     assert run.call_args.args[0] == [sys.executable, "-I", "-B", str(root / "scripts/codex_agentic.py"), *call.script_args]
     (root / "scripts/codex_agentic.py").unlink()
+    with patch.object(runtime.subprocess, "run", side_effect=AssertionError("dispatch")):
+        with pytest.raises(ValueError, match="missing or outside"):
+            runtime.command_run(call)
+
+
+def test_brief_dispatch_requires_explicit_staged_script(tmp_path, monkeypatch):
+    root = fixture_source(tmp_path, monkeypatch)
+    call = args(tmp_path)
+    call.script, call.script_args = "codex_brief.py", ["validate", "--output", "/saved/brief"]
+    with patch.object(runtime.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert runtime.command_run(call) == 0
+    assert run.call_args.args[0] == [sys.executable, "-I", "-B", str(root / "scripts/codex_brief.py"), *call.script_args]
+    (root / "scripts/codex_brief.py").unlink()
     with patch.object(runtime.subprocess, "run", side_effect=AssertionError("dispatch")):
         with pytest.raises(ValueError, match="missing or outside"):
             runtime.command_run(call)

@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES + stage.BRIEF_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -210,6 +210,8 @@ class StagePilotTests(unittest.TestCase):
         self.assertFalse((self.output / "scripts/codex_sitemap.py").exists())
         self.assertNotIn("seo-codex-agentic", config["agents"])
         self.assertFalse((self.output / "scripts/codex_agentic.py").exists())
+        self.assertNotIn("seo-codex-content-brief", config["agents"])
+        self.assertFalse((self.output / "scripts/codex_brief.py").exists())
 
     def test_sitemap_option_is_scoped_and_independent_of_visual(self):
         manifest = stage.stage_pilot(self.output, source_root=self.source,
@@ -279,6 +281,44 @@ class StagePilotTests(unittest.TestCase):
         (self.source / "scripts/lighthouse_agentic.py").unlink()
         with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
             stage.stage_pilot(self.output, source_root=self.source, agentic_report=True)
+        self.assertFalse(self.output.exists())
+
+    def test_brief_option_is_scoped_and_preserves_author_notice(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    content_brief=True, register_agents=True)
+        self.assertEqual(len(manifest["files"]), 33)
+        added = {r["destination"] for r in manifest["files"]} - {
+            dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(added, {"scripts/codex_brief.py", ".codex/agents/seo-codex-content-brief.toml",
+                                ".agents/skills/seo-codex-content-brief/SKILL.md",
+                                ".agents/skills/seo-codex-content-brief/references/review.md",
+                                ".agents/skills/seo-codex-content-brief/LICENSE.txt"})
+        self.assertEqual((self.output / ".agents/skills/seo-codex-content-brief/LICENSE.txt").read_bytes(),
+                         (self.source / "skills/seo-content-brief/LICENSE.txt").read_bytes())
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
+            "seo-codex-images", "seo-codex-local", "seo-codex-hreflang", "seo-codex-content-brief"
+        })
+        for name in ("google_auth.py", "pagespeed_check.py", "codex_agentic.py", "codex_visual.py"):
+            self.assertFalse((self.output / "scripts" / name).exists())
+        for row in manifest["files"] + manifest["generated_files"]:
+            self.assertEqual(row["sha256"], hashlib.sha256(
+                (self.output / row["destination"]).read_bytes()).hexdigest())
+
+    def test_all_four_optional_adapters_remain_additive(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
+                                    visual_evidence=True, agentic_report=True, content_brief=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 48)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(tomllib.loads((self.output / ".codex/config.toml").read_text())["agents"]), 10)
+
+    def test_missing_brief_license_leaves_no_output(self):
+        (self.source / "skills/seo-content-brief/LICENSE.txt").unlink()
+        with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+            stage.stage_pilot(self.output, source_root=self.source, content_brief=True)
         self.assertFalse(self.output.exists())
 
     def test_missing_sitemap_parser_leaves_no_output(self):
