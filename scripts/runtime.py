@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import os
 import re
@@ -61,6 +62,103 @@ REDACTIONS = (
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "<redacted-email>"),
     (re.compile(r"(?i)(token|password|secret|api[_-]?key)([=:\s]+)[^\s]+"), r"\1\2<redacted>"),
 )
+CODEX_ALLOWED_SCRIPTS = frozenset({"codex_pilot.py"})
+
+
+def _codex_paths(args: argparse.Namespace) -> dict[str, Path]:
+    # Load only this stdlib sibling, including when callers load runtime by spec.
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location(
+        "_seo_state_paths", Path(__file__).resolve().with_name("state_paths.py")
+    )
+    assert spec and spec.loader
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module.resolve_codex_paths(getattr(args, "state_root", None), _root())
+
+
+def _codex_env(paths: dict[str, Path]) -> dict[str, str]:
+    """No ambient credentials, Python settings, proxies, or Claude state.
+
+    HOME/CODEX_HOME are neither copied nor reassigned. This is process hygiene,
+    not filesystem isolation; only reviewed pilot code may be dispatched.
+    """
+    env = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TMPDIR", "TMP", "TEMP")
+           if key in os.environ}
+    env.update({
+        "PATH": os.defpath,
+        "PYTHONUTF8": "1",
+        "PYTHONIOENCODING": "utf-8",
+        "PYTHONNOUSERSITE": "1",
+        "PYTHONDONTWRITEBYTECODE": "1",
+        "CODEX_SEO_STATE_ROOT": str(paths["state_root"]),
+        "CODEX_SEO_RUNTIME_DIR": str(paths["runtime"]),
+        "CODEX_SEO_CONFIG_DIR": str(paths["config"]),
+        "CODEX_SEO_CACHE_DIR": str(paths["cache"]),
+    })
+    return env
+
+
+def _codex_script(root: Path, name: str, extension: str | None) -> Path:
+    if extension is not None or name not in CODEX_ALLOWED_SCRIPTS:
+        raise ValueError("Codex prepared runtime permits only codex_pilot.py; providers and extensions are unavailable")
+    candidate = root / "scripts" / name
+    if ((root / "scripts").is_symlink() or candidate.is_symlink() or not candidate.is_file()
+            or candidate.resolve().parent != (root / "scripts").resolve()):
+        raise ValueError("Codex pilot script is missing or outside the prepared source")
+    return candidate
+
+
+def _propagate_result(result: subprocess.CompletedProcess) -> int:
+    if result.returncode < 0:
+        os.kill(os.getpid(), -result.returncode)
+        return 128 + (-result.returncode)
+    return result.returncode
+
+
+def _codex_run(args: argparse.Namespace) -> int:
+    paths = _codex_paths(args)
+    script = _codex_script(_root(), args.script, args.extension)
+    if not _python_supported():
+        print(_python_range_message(), file=sys.stderr)
+        return 2
+    result = subprocess.run(
+        [sys.executable, "-I", "-B", str(script), *args.script_args],
+        env=_codex_env(paths),
+    )
+    return _propagate_result(result)
+
+
+def _codex_doctor(args: argparse.Namespace) -> int:
+    paths = _codex_paths(args)
+    script = _codex_script(_root(), "codex_pilot.py", None)
+    public = {"host": "codex", "mode": "prepared", "ready": False,
+              "python_version": f"{sys.version_info.major}.{sys.version_info.minor}",
+              "state_policy": "explicit-root-no-legacy-fallback", "reasons": []}
+    if not _python_supported():
+        public["reasons"].append("Python is outside the supported range")
+    else:
+        try:
+            result = subprocess.run(
+                [sys.executable, "-I", "-B", str(script), "doctor"], env=_codex_env(paths),
+                capture_output=True, text=True, encoding="utf-8", errors="replace", timeout=30,
+            )
+            probe = json.loads(result.stdout) if result.returncode == 0 else None
+        except (ValueError, OSError, subprocess.SubprocessError):
+            probe = None
+        if (isinstance(probe, dict) and probe.get("ready") is True
+                and probe.get("credentials") == "not inspected"):
+            public["ready"] = True
+            public["capabilities"] = {key: probe[key] for key in ("dependencies", "parser", "rendered_capture") if key in probe}
+        else:
+            public["reasons"].append("Prepared pilot dependency probe failed; no installation attempted")
+    if args.json:
+        print(json.dumps(public, indent=2, sort_keys=True))
+    else:
+        print(f"Codex prepared runtime: {'ready' if public['ready'] else 'unavailable'}")
+        for reason in public["reasons"]:
+            print(f"Reason: {reason}")
+    return 0 if public["ready"] else 3
 
 
 def _configure_utf8() -> None:
@@ -291,6 +389,10 @@ class SetupLock:
 
 
 def command_setup(args: argparse.Namespace) -> int:
+    if getattr(args, "host", None) == "codex":
+        _codex_paths(args)
+        print("Codex prepared runtime only; installation not supported", file=sys.stderr)
+        return 2
     if not _python_supported():
         print(_python_range_message(), file=sys.stderr)
         return 2
@@ -399,6 +501,8 @@ def _resolve_script(root: Path, name: str, extension: str | None) -> Path:
 
 
 def command_run(args: argparse.Namespace) -> int:
+    if getattr(args, "host", None) == "codex":
+        return _codex_run(args)
     root = _root()
     try:
         script = _resolve_script(root, args.script, args.extension)
@@ -420,6 +524,8 @@ def command_run(args: argparse.Namespace) -> int:
 
 
 def command_doctor(args: argparse.Namespace) -> int:
+    if getattr(args, "host", None) == "codex":
+        return _codex_doctor(args)
     status = _status(_root())
     public = {
         "ready": status["ready"],
@@ -443,6 +549,8 @@ def command_doctor(args: argparse.Namespace) -> int:
 
 def build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(prog="claude-seo", description="Claude SEO managed Python runtime")
+    parser.add_argument("--host", choices=("codex",), help="Explicit prepared host; omit for legacy behavior")
+    parser.add_argument("--state-root", help="Absolute dedicated Codex state directory; required with --host codex")
     sub = parser.add_subparsers(dest="command", required=True)
     setup = sub.add_parser("setup", help="create or refresh the isolated runtime")
     setup.add_argument("--skip-browser", action="store_true")
@@ -462,6 +570,8 @@ def main(argv: list[str] | None = None) -> int:
     _configure_utf8()
     args = build_parser().parse_args(argv)
     try:
+        if args.state_root is not None and args.host != "codex":
+            raise ValueError("--state-root requires --host codex")
         return int(args.func(args))
     except (OSError, RuntimeError, ValueError) as exc:
         print(f"Claude SEO runtime failed: {_redact(str(exc))}", file=sys.stderr)

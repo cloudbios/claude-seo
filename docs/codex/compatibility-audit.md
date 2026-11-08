@@ -1,6 +1,8 @@
 # Codex compatibility audit
 
-Status: source audit complete; implementation and live compatibility tests not started.
+Status: historical source audit complete at the baseline below. Subsequent
+implementation: [accepted pilot](pilot-validation.md) and
+[runtime foundation](runtime-foundation.md).
 Date: November 8, 2026 (America/Los_Angeles).
 
 ## Baseline and scope

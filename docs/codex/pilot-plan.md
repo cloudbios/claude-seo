@@ -134,6 +134,9 @@ accurate findings, safe scope and usable outputs.
 
 ## Dependency-ordered follow-up
 
+The [runtime and schema-feedback foundation](runtime-foundation.md) implements
+the next bounded step. Its own verification status is recorded separately.
+
 | Stage | Prerequisite | Completion condition |
 | --- | --- | --- |
 | Pilot | This audit accepted for implementation | All acceptance cases relevant to the selected host are evidenced. |
