@@ -62,7 +62,7 @@ REDACTIONS = (
     (re.compile(r"\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b"), "<redacted-email>"),
     (re.compile(r"(?i)(token|password|secret|api[_-]?key)([=:\s]+)[^\s]+"), r"\1\2<redacted>"),
 )
-CODEX_ALLOWED_SCRIPTS = frozenset({"codex_pilot.py"})
+CODEX_ALLOWED_SCRIPTS = frozenset({"codex_pilot.py", "codex_audit.py"})
 
 
 def _codex_paths(args: argparse.Namespace) -> dict[str, Path]:
@@ -81,7 +81,7 @@ def _codex_env(paths: dict[str, Path]) -> dict[str, str]:
     """No ambient credentials, Python settings, proxies, or Claude state.
 
     HOME/CODEX_HOME are neither copied nor reassigned. This is process hygiene,
-    not filesystem isolation; only reviewed pilot code may be dispatched.
+    not filesystem isolation; only reviewed Codex adapter code may be dispatched.
     """
     env = {key: os.environ[key] for key in ("SYSTEMROOT", "WINDIR", "COMSPEC", "PATHEXT", "TMPDIR", "TMP", "TEMP")
            if key in os.environ}
@@ -101,11 +101,12 @@ def _codex_env(paths: dict[str, Path]) -> dict[str, str]:
 
 def _codex_script(root: Path, name: str, extension: str | None) -> Path:
     if extension is not None or name not in CODEX_ALLOWED_SCRIPTS:
-        raise ValueError("Codex prepared runtime permits only codex_pilot.py; providers and extensions are unavailable")
+        raise ValueError("Codex prepared runtime permits only codex_pilot.py and codex_audit.py; "
+                         "providers and extensions are unavailable")
     candidate = root / "scripts" / name
     if ((root / "scripts").is_symlink() or candidate.is_symlink() or not candidate.is_file()
             or candidate.resolve().parent != (root / "scripts").resolve()):
-        raise ValueError("Codex pilot script is missing or outside the prepared source")
+        raise ValueError("Codex adapter script is missing or outside the prepared source")
     return candidate
 
 

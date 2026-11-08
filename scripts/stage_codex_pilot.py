@@ -31,6 +31,13 @@ FOUNDATION_FILES = (
     ("scripts/runtime.py", "scripts/runtime.py"),
     ("scripts/state_paths.py", "scripts/state_paths.py"),
 )
+CORE_FILES = (
+    ("scripts/codex_audit.py", "scripts/codex_audit.py"),
+    ("adapters/codex/skills/seo-codex/SKILL.md", ".agents/skills/seo-codex/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-audit/SKILL.md", ".agents/skills/seo-codex-audit/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-audit/references/synthesis.md",
+     ".agents/skills/seo-codex-audit/references/synthesis.md"),
+)
 AGENT_REGISTRATION = '''[agents.seo-codex-technical]
 description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
 config_file = "agents/seo-codex-technical.toml"
@@ -65,9 +72,36 @@ Python directly with `scripts/runtime.py --host codex --state-root <absolute
 dedicated directory> run codex_pilot.py ...`. The state root must be supplied
 by the caller and must not overlap this source project. If it is missing,
 request it; do not borrow a global or Claude state/configuration directory.
-The Codex runner accepts only the pilot and refuses installation and providers.
+The Codex runner allows only `codex_pilot.py` and `codex_audit.py`; each must be
+present in this stage to run. It refuses installation and providers.
 Run its `doctor --json` before the audit. Its clean environment is process
 hygiene, not a replacement for the host sandbox or permissions.
+"""
+CORE_INSTRUCTIONS = """# Bounded Codex SEO core
+
+Use `.agents/skills/seo-codex/SKILL.md` to route requests. Its supported workflows
+are the one-page pilot and a sampled audit of one to five explicit pages using
+`.agents/skills/seo-codex-audit/SKILL.md`. Other routes are unavailable here.
+Do not invoke unrelated globally installed SEO skills or upstream workflows.
+Follow the caller's authorization and tool restrictions; this directory grants
+no new network, installation, authentication, spending, or publication authority.
+
+The caller supplies a prepared Python and an absolute dedicated state root.
+Do not install dependencies or change global settings. Technical and schema
+profiles are in `.codex/agents/`; model, reasoning, and permissions inherit from
+the caller. Do not assume agent discovery or hook compatibility has passed.
+Use explicit schema validation through the capture workflow.
+
+One coordinator owns the audit manifest. Reserve each task before spawning;
+respect both the two-worker limit and the host's available capacity. Keep its
+reservation until native completion or confirmed stop, then reconcile and
+release. A result file alone never proves the agent stopped. Report missing or
+partial results and retain captured evidence when resuming. Never claim that a
+sampled audit covers the full site.
+
+This stage is intentionally not initialized as a Git repository. A caller may
+use Codex's skip-Git-check option where required. `stage-manifest.json` records
+the copied source hashes; it is provenance, not a compatibility test receipt.
 """
 
 
@@ -93,6 +127,7 @@ def stage_pilot(
     source_ref: str | None = None,
     register_agents: bool = False,
     runtime_foundation: bool = False,
+    core_orchestration: bool = False,
     schema_hook_python: Path | None = None,
 ) -> dict:
     """Copy the explicit allowlist into a new or existing empty directory.
@@ -122,8 +157,11 @@ def stage_pilot(
         if not hook_python.is_file() or not os.access(hook_python, os.X_OK):
             raise StageError("Hook interpreter must be an existing executable file")
 
+    runtime_foundation = runtime_foundation or core_orchestration
     payloads: list[tuple[str, str, bytes]] = []
-    for source, destination in COPY_FILES + (FOUNDATION_FILES if runtime_foundation else ()):
+    sources = (COPY_FILES + (FOUNDATION_FILES if runtime_foundation else ())
+               + (CORE_FILES if core_orchestration else ()))
+    for source, destination in sources:
         path = root / source
         _reject_symlinks(path)
         if not path.resolve().is_relative_to(root):
@@ -132,7 +170,8 @@ def stage_pilot(
             raise StageError(f"Required pilot source is missing: {source}")
         payloads.append((source, destination, path.read_bytes()))
 
-    instructions = STAGE_INSTRUCTIONS + (FOUNDATION_INSTRUCTIONS if runtime_foundation else "")
+    instructions = ((CORE_INSTRUCTIONS if core_orchestration else STAGE_INSTRUCTIONS)
+                    + (FOUNDATION_INSTRUCTIONS if runtime_foundation else ""))
     generated = {"AGENTS.md": instructions.encode("utf-8")}
     if register_agents:
         generated[".codex/config.toml"] = AGENT_REGISTRATION.encode("utf-8")
@@ -186,6 +225,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Generate scoped project agent registrations in .codex/config.toml")
     parser.add_argument("--runtime-foundation", action="store_true",
                         help="Include the explicit Codex runtime and state-path policy")
+    parser.add_argument("--core-orchestration", action="store_true",
+                        help="Include the bounded router/audit coordinator and runtime foundation")
     parser.add_argument("--schema-hook-python", type=Path,
                         help="Generate an untrusted local schema hook using this absolute prepared interpreter")
     args = parser.parse_args(argv)
@@ -193,6 +234,7 @@ def main(argv: list[str] | None = None) -> int:
         manifest = stage_pilot(args.output, source_ref=args.source_ref,
                                register_agents=args.register_agents,
                                runtime_foundation=args.runtime_foundation,
+                               core_orchestration=args.core_orchestration,
                                schema_hook_python=args.schema_hook_python)
     except (OSError, StageError) as exc:
         print(f"Pilot staging refused: {exc}", file=sys.stderr)

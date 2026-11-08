@@ -28,7 +28,10 @@ source-overlapping paths. Resolution and `doctor` do not create directories,
 read credentials or consult legacy runtime markers. The caller must control
 the state directory and its parent; this policy is not a filesystem sandbox.
 
-Codex dispatch currently permits only `codex_pilot.py`. It uses the caller's
+The accepted foundation permitted only `codex_pilot.py`. The subsequent
+[core orchestration](core-orchestration.md) adds `codex_audit.py` to that explicit
+allowlist; the default pilot-only stage does not include the coordinator.
+Dispatch uses the caller's
 interpreter with `-I -B`, a minimal platform environment, and explicit
 `CODEX_SEO_STATE_ROOT`, `CODEX_SEO_RUNTIME_DIR`, `CODEX_SEO_CONFIG_DIR` and
 `CODEX_SEO_CACHE_DIR` values. It omits ambient provider credentials, Python

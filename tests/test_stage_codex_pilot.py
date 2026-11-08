@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -115,6 +115,44 @@ class StagePilotTests(unittest.TestCase):
             self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
         self.assertFalse((self.output / "scripts/google_auth.py").exists())
         self.assertFalse((self.output / ".codex/hooks.json").exists())
+
+    def test_core_payload_is_fixed_scoped_and_hashes_supporting_reference(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, core_orchestration=True)
+        additions = {entry["destination"] for entry in manifest["files"]} - {
+            destination for _, destination in stage.COPY_FILES
+        }
+        self.assertEqual(additions, {
+            "scripts/runtime.py", "scripts/state_paths.py", "scripts/codex_audit.py",
+            ".agents/skills/seo-codex/SKILL.md", ".agents/skills/seo-codex-audit/SKILL.md",
+            ".agents/skills/seo-codex-audit/references/synthesis.md",
+        })
+        self.assertEqual(len(manifest["files"]), 14)
+        for entry in manifest["files"] + manifest["generated_files"]:
+            data = (self.output / entry["destination"]).read_bytes()
+            self.assertEqual(entry["sha256"], hashlib.sha256(data).hexdigest())
+        instructions = (self.output / "AGENTS.md").read_text()
+        self.assertIn("seo-codex/SKILL.md", instructions)
+        self.assertIn("one to five explicit pages", instructions)
+        self.assertIn("result file alone never proves", instructions)
+        self.assertIn("codex_audit.py", instructions)
+        self.assertFalse((self.output / ".codex/config.toml").exists())
+        self.assertFalse((self.output / ".codex/hooks.json").exists())
+        self.assertFalse((self.output / "scripts/google_auth.py").exists())
+        self.assertFalse((self.output / "secret-config.json").exists())
+
+    def test_core_and_foundation_flags_do_not_duplicate_files(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, core_orchestration=True,
+                                    runtime_foundation=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), len(set(destinations)))
+        self.assertEqual(len(destinations), 14)
+        self.assertTrue((self.output / ".codex/config.toml").is_file())
+
+    def test_missing_core_reference_leaves_no_output(self):
+        (self.source / "adapters/codex/skills/seo-codex-audit/references/synthesis.md").unlink()
+        with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+            stage.stage_pilot(self.output, source_root=self.source, core_orchestration=True)
+        self.assertFalse(self.output.exists())
 
     @unittest.skipIf(sys.platform == "win32", "POSIX hook staging contract")
     def test_opt_in_hook_is_scoped_quoted_and_manifested_without_trust(self):

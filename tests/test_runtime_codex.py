@@ -29,6 +29,7 @@ def fixture_source(tmp_path, monkeypatch):
     root = tmp_path / "source"
     (root / "scripts").mkdir(parents=True)
     (root / "scripts/codex_pilot.py").write_text("pass\n")
+    (root / "scripts/codex_audit.py").write_text("pass\n")
     monkeypatch.setattr(runtime, "_root", lambda: root)
     return root
 
@@ -54,13 +55,37 @@ def test_codex_dispatch_safe_argv_clean_env_and_exit(tmp_path, monkeypatch):
 
 
 @pytest.mark.parametrize("script,extension", [("google_auth.py", None), ("parse_html.py", None),
-                                              ("../codex_pilot.py", None), ("codex_pilot.py", "banana")])
+                                              ("../codex_pilot.py", None), ("codex_pilot.py", "banana"),
+                                              ("../codex_audit.py", None), ("codex_audit.py", "banana")])
 def test_blocked_dispatch_never_starts_subprocess(tmp_path, monkeypatch, script, extension):
     fixture_source(tmp_path, monkeypatch)
     call = args(tmp_path)
     call.script, call.extension = script, extension
     with patch.object(runtime.subprocess, "run", side_effect=AssertionError("dispatch")):
         with pytest.raises(ValueError, match="only codex_pilot"):
+            runtime.command_run(call)
+
+
+def test_codex_audit_dispatch_is_explicit_and_uses_same_boundary(tmp_path, monkeypatch):
+    root = fixture_source(tmp_path, monkeypatch)
+    call = args(tmp_path)
+    call.script = "codex_audit.py"
+    call.script_args = ["route", "audit"]
+    with patch.object(runtime.subprocess, "run", return_value=SimpleNamespace(returncode=0)) as run:
+        assert runtime.command_run(call) == 0
+    assert run.call_args.args[0] == [sys.executable, "-I", "-B", str(root / "scripts/codex_audit.py"),
+                                    "route", "audit"]
+    assert run.call_args.kwargs["env"]["CODEX_SEO_STATE_ROOT"] == str(tmp_path / "state")
+    assert runtime.CODEX_ALLOWED_SCRIPTS == {"codex_pilot.py", "codex_audit.py"}
+
+
+def test_missing_audit_in_pilot_only_stage_does_not_fall_back(tmp_path, monkeypatch):
+    root = fixture_source(tmp_path, monkeypatch)
+    (root / "scripts/codex_audit.py").unlink()
+    call = args(tmp_path)
+    call.script = "codex_audit.py"
+    with patch.object(runtime.subprocess, "run", side_effect=AssertionError("dispatch")):
+        with pytest.raises(ValueError, match="missing or outside"):
             runtime.command_run(call)
 
 
