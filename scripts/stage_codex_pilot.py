@@ -48,6 +48,14 @@ CORE_FILES = (
      ".agents/skills/seo-codex-images/references/review.md"),
     ("skills/seo-images/LICENSE.txt", ".agents/skills/seo-codex-images/LICENSE.txt"),
 )
+VISUAL_FILES = (
+    ("scripts/render_page.py", "scripts/render_page.py"),
+    ("scripts/codex_visual.py", "scripts/codex_visual.py"),
+    ("adapters/codex/agents/seo-codex-visual.toml", ".codex/agents/seo-codex-visual.toml"),
+    ("adapters/codex/skills/seo-codex-visual/SKILL.md", ".agents/skills/seo-codex-visual/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-visual/references/review.md",
+     ".agents/skills/seo-codex-visual/references/review.md"),
+)
 AGENT_REGISTRATION = '''[agents.seo-codex-technical]
 description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
 config_file = "agents/seo-codex-technical.toml"
@@ -64,6 +72,11 @@ config_file = "agents/seo-codex-content.toml"
 [agents.seo-codex-images]
 description = "Review captured source HTML for image markup, text alternatives and delivery declarations."
 config_file = "agents/seo-codex-images.toml"
+'''
+VISUAL_AGENT_REGISTRATION = '''
+[agents.seo-codex-visual]
+description = "Review verified offline desktop/mobile render evidence and save bounded visual findings."
+config_file = "agents/seo-codex-visual.toml"
 '''
 STAGE_INSTRUCTIONS = """# Bounded Codex SEO pilot
 
@@ -91,17 +104,30 @@ Python directly with `scripts/runtime.py --host codex --state-root <absolute
 dedicated directory> run codex_pilot.py ...`. The state root must be supplied
 by the caller and must not overlap this source project. If it is missing,
 request it; do not borrow a global or Claude state/configuration directory.
-The Codex runner allows only `codex_pilot.py` and `codex_audit.py`; each must be
-present in this stage to run. It refuses installation and providers.
+The Codex runner allows only `codex_pilot.py`, `codex_audit.py` and
+`codex_visual.py`; each must be present in this stage to run. It refuses
+installation and providers.
 Run its `doctor --json` before the audit. Its clean environment is process
 hygiene, not a replacement for the host sandbox or permissions.
+"""
+VISUAL_INSTRUCTIONS = """
+## Optional offline visual evidence
+
+This stage also includes `.agents/skills/seo-codex-visual/SKILL.md`. It renders
+an existing verified raw capture with external requests blocked, using an
+explicit prepared Chromium executable. It does not browse the live site.
+Use the visual helper through the same prepared runtime; run its own doctor
+before capture. Do not install browsers or infer an executable from global
+configuration. Preserve the source capture and create a separate evidence
+directory. The native visual role requires actual screenshot inspection;
+missing image-view capability means partial review.
 """
 CORE_INSTRUCTIONS = """# Bounded Codex SEO core
 
 Use `.agents/skills/seo-codex/SKILL.md` to route requests. Its supported workflows
 are the one-page pilot, content and image-markup reviews, and a sampled audit
 of one to five explicit pages using `.agents/skills/seo-codex-audit/SKILL.md`.
-Other routes are unavailable here.
+Other routes require an explicitly staged adapter.
 Do not invoke unrelated globally installed SEO skills or upstream workflows.
 Follow the caller's authorization and tool restrictions; this directory grants
 no new network, installation, authentication, spending, or publication authority.
@@ -150,6 +176,7 @@ def stage_pilot(
     register_agents: bool = False,
     runtime_foundation: bool = False,
     core_orchestration: bool = False,
+    visual_evidence: bool = False,
     schema_hook_python: Path | None = None,
 ) -> dict:
     """Copy the explicit allowlist into a new or existing empty directory.
@@ -179,10 +206,12 @@ def stage_pilot(
         if not hook_python.is_file() or not os.access(hook_python, os.X_OK):
             raise StageError("Hook interpreter must be an existing executable file")
 
+    core_orchestration = core_orchestration or visual_evidence
     runtime_foundation = runtime_foundation or core_orchestration
     payloads: list[tuple[str, str, bytes]] = []
     sources = (COPY_FILES + (FOUNDATION_FILES if runtime_foundation else ())
-               + (CORE_FILES if core_orchestration else ()))
+               + (CORE_FILES if core_orchestration else ())
+               + (VISUAL_FILES if visual_evidence else ()))
     for source, destination in sources:
         path = root / source
         _reject_symlinks(path)
@@ -193,11 +222,13 @@ def stage_pilot(
         payloads.append((source, destination, path.read_bytes()))
 
     instructions = ((CORE_INSTRUCTIONS if core_orchestration else STAGE_INSTRUCTIONS)
-                    + (FOUNDATION_INSTRUCTIONS if runtime_foundation else ""))
+                    + (FOUNDATION_INSTRUCTIONS if runtime_foundation else "")
+                    + (VISUAL_INSTRUCTIONS if visual_evidence else ""))
     generated = {"AGENTS.md": instructions.encode("utf-8")}
     if register_agents:
         generated[".codex/config.toml"] = (
             AGENT_REGISTRATION + (CORE_AGENT_REGISTRATION if core_orchestration else "")
+            + (VISUAL_AGENT_REGISTRATION if visual_evidence else "")
         ).encode("utf-8")
     if hook_python is not None:
         argv = [str(hook_python), "-I", "-B", str(output / "hooks" / "validate-schema.py")]
@@ -251,6 +282,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Include the explicit Codex runtime and state-path policy")
     parser.add_argument("--core-orchestration", action="store_true",
                         help="Include the bounded router/audit coordinator and runtime foundation")
+    parser.add_argument("--visual-evidence", action="store_true",
+                        help="Include opt-in offline visual capture and its native role; implies core orchestration")
     parser.add_argument("--schema-hook-python", type=Path,
                         help="Generate an untrusted local schema hook using this absolute prepared interpreter")
     args = parser.parse_args(argv)
@@ -259,6 +292,7 @@ def main(argv: list[str] | None = None) -> int:
                                register_agents=args.register_agents,
                                runtime_foundation=args.runtime_foundation,
                                core_orchestration=args.core_orchestration,
+                               visual_evidence=args.visual_evidence,
                                schema_hook_python=args.schema_hook_python)
     except (OSError, StageError) as exc:
         print(f"Pilot staging refused: {exc}", file=sys.stderr)

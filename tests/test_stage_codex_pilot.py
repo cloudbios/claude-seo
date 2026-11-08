@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -168,6 +168,37 @@ class StagePilotTests(unittest.TestCase):
         with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
             stage.stage_pilot(self.output, source_root=self.source, core_orchestration=True)
         self.assertFalse(self.output.exists())
+
+    def test_visual_option_is_scoped_includes_core_and_has_provenance(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    visual_evidence=True, register_agents=True)
+        self.assertEqual(len(manifest["files"]), 27)
+        self.assertEqual(len({r["destination"] for r in manifest["files"]}), 27)
+        visual = {r["destination"] for r in manifest["files"]} - {
+            dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(visual, {"scripts/codex_visual.py", "scripts/render_page.py",
+                                 ".codex/agents/seo-codex-visual.toml",
+                                 ".agents/skills/seo-codex-visual/SKILL.md",
+                                 ".agents/skills/seo-codex-visual/references/review.md"})
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
+            "seo-codex-images", "seo-codex-visual"
+        })
+        for row in manifest["files"] + manifest["generated_files"]:
+            self.assertEqual(row["sha256"], hashlib.sha256(
+                (self.output / row["destination"]).read_bytes()).hexdigest())
+        self.assertIn("external requests blocked", (self.output / "AGENTS.md").read_text())
+        self.assertFalse((self.output / "scripts/pagespeed_check.py").exists())
+
+    def test_core_without_visual_preserves_existing_registration(self):
+        stage.stage_pilot(self.output, source_root=self.source,
+                          core_orchestration=True, register_agents=True)
+        self.assertFalse((self.output / "scripts/codex_visual.py").exists())
+        self.assertFalse((self.output / ".codex/agents/seo-codex-visual.toml").exists())
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertNotIn("seo-codex-visual", config["agents"])
 
     def test_missing_core_reference_leaves_no_output(self):
         (self.source / "adapters/codex/skills/seo-codex-audit/references/synthesis.md").unlink()

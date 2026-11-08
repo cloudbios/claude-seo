@@ -58,6 +58,22 @@ def test_route_never_looks_up_auth_or_runs_network():
             assert audit.route(workflow)["status"] == "unavailable"
 
 
+def test_visual_route_requires_optional_payload_without_starting_browser(tmp_path, monkeypatch):
+    monkeypatch.setattr(audit.pilot, "ROOT", tmp_path)
+    with patch.object(audit.pilot, "modules", side_effect=AssertionError("browser or dependencies")):
+        assert audit.route("visual")["status"] == "unavailable"
+        for path in ("scripts/codex_visual.py", ".codex/agents/seo-codex-visual.toml",
+                     ".agents/skills/seo-codex-visual/SKILL.md",
+                     ".agents/skills/seo-codex-visual/references/review.md"):
+            target = tmp_path / path
+            target.parent.mkdir(parents=True, exist_ok=True)
+            target.write_text("staged fixture")
+        assert audit.route("visual") == {
+            "status": "available", "workflow": "visual",
+            "skill": "seo-codex-visual", "focus": "offline-saved-html"
+        }
+
+
 @pytest.mark.parametrize("entries", [[], ["https://example.com/" + str(i) for i in range(6)],
                                       ["http://127.0.0.1/"], ["https://user:secret@example.com/"],
                                       ["https://example.com", "https://EXAMPLE.com:443/#fragment"],

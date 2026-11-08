@@ -7,6 +7,11 @@ review jobs to two. The [content/image batch](../../docs/codex/content-images.md
 describes the added source-only specialties and explicit role selection.
 Other upstream skills and provider integrations remain unavailable through it.
 
+An optional [visual-evidence stage](../../docs/codex/visual-evidence.md) adds
+offline rendering of an already captured page and a separate native visual
+review. Use `--visual-evidence` instead of `--core-orchestration` to include it;
+the prepared browser executable must be supplied explicitly.
+
 ```sh
 python3 scripts/stage_codex_pilot.py --output /private/tmp/seo-core-project \
   --register-agents --core-orchestration

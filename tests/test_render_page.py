@@ -688,3 +688,178 @@ def test_json_and_output_are_composable(tmp_path, monkeypatch, capsys) -> None:
     assert payload["content"] == "<html><b"
     assert payload["truncation"]["fields"]["content"]["truncated"] is True
     assert output.read_text(encoding="utf-8") == result["content"]
+
+
+class _SavedManager:
+    version = "test-browser-1"
+
+    """Browser-free guard test: requests from every context share its handler."""
+    def __init__(self, *, fail_mobile=False):
+        self.contexts = []
+        self.closed = False
+        self.fail_mobile = fail_mobile
+        self.launch_options = None
+
+    def launch(self, **options):
+        self.launch_options = options
+        return self
+
+    def new_context(self, **options):
+        context = _SavedContext(options, self.fail_mobile and len(self.contexts) == 1)
+        self.contexts.append(context)
+        return context
+
+    def close(self):
+        self.closed = True
+
+    def __enter__(self):
+        return SimpleNamespace(chromium=SimpleNamespace(launch=self.launch))
+
+    def __exit__(self, *_args):
+        return False
+
+
+class _SavedContext:
+    def __init__(self, options, fail):
+        self.options = options
+        self.fail = fail
+        self.closed = False
+        self.actions = []
+        self.main_frame = object()
+        self.ws_handler = None
+
+    def route(self, pattern, handler):
+        self.handler = handler
+
+    def route_web_socket(self, pattern, handler):
+        self.ws_handler = handler
+
+    def add_init_script(self, source):
+        self.init_script = source
+
+    def new_page(self):
+        return self
+
+    def set_default_timeout(self, timeout):
+        pass
+
+    def on(self, *args):
+        pass
+
+    def request(self, url, frame=None, navigation=True):
+        route = SimpleNamespace(
+            request=SimpleNamespace(url=url, method="GET", frame=frame or self.main_frame,
+                                    is_navigation_request=lambda: navigation),
+            fulfill=lambda **kwargs: self.actions.append(("fulfill", kwargs)),
+            abort=lambda: self.actions.append(("abort", url)),
+        )
+        self.handler(route)
+
+    def goto(self, url, **options):
+        self.request(url)
+        self.request(url)  # Same-origin reload cannot refetch saved bytes.
+        self.request("http://127.0.0.1/private")
+        self.request("file:///etc/passwd")
+        self.request(url, frame=object())  # Popup's main frame is different.
+        if self.fail:
+            raise RuntimeError("viewport failed")
+
+    def evaluate(self, expression, *args):
+        if expression.startswith("url =>"):
+            return args[0]
+        if "const html" in expression:
+            return "<html><body>rendered</body></html>"
+        return {**self.options["viewport"], "scroll_width": 1280, "scroll_height": 800,
+                "inspected_elements": 3, "elements_truncated": False, "overflow": []}
+
+    def screenshot(self, **options):
+        self.screenshot_options = options
+        return b"png-fixture"
+
+    def close(self):
+        self.closed = True
+
+
+def test_saved_html_uses_bytes_once_and_blocks_all_other_requests(tmp_path, monkeypatch):
+    browser_path = tmp_path / "browser"
+    browser_path.write_text("fixture")
+    browser_path.chmod(0o700)
+    manager = _SavedManager()
+    monkeypatch.setattr(render_page, "sync_playwright", lambda: manager)
+    monkeypatch.setattr(render_page, "_wait_for_dom_stability", lambda *args: True)
+    monkeypatch.setattr(render_page, "safe_requests_get", lambda *args, **kw: pytest.fail("raw HTTP must not run"))
+    monkeypatch.setattr(render_page, "validate_url_strict", lambda *args: pytest.fail("DNS must not run"))
+    raw = b"<html><body>original exact bytes</body></html>"
+    callbacks = []
+    results = render_page.render_saved_html(raw, "https://example.com/", browser_path=str(browser_path),
+                                            on_viewport=lambda name, result: callbacks.append(name))
+    assert callbacks == ["desktop", "mobile"]
+    assert all(result["status"] == "complete" for result in results.values())
+    assert len(manager.contexts) == 2 and manager.contexts[0] is not manager.contexts[1]
+    assert manager.closed
+    for name, context in zip(("desktop", "mobile"), manager.contexts):
+        assert context.closed
+        assert context.options["service_workers"] == "block"
+        assert context.options["device_scale_factor"] == 1
+        assert context.options["viewport"] == render_page.SAVED_VIEWPORTS[name]
+        assert context.ws_handler is not None
+        assert context.actions[0][0] == "fulfill"
+        assert context.actions[0][1]["body"] is raw
+        assert context.actions[0][1]["headers"]["content-security-policy"]
+        assert [action[0] for action in context.actions[1:]] == ["abort"] * 4
+        assert context.screenshot_options["full_page"] is False
+        assert results[name]["blocked_requests"] == 4
+
+
+def test_saved_html_failure_is_partial_and_contexts_close(tmp_path, monkeypatch):
+    executable = tmp_path / "browser"
+    executable.write_bytes(b"fixture")
+    executable.chmod(0o700)
+    manager = _SavedManager(fail_mobile=True)
+    monkeypatch.setattr(render_page, "sync_playwright", lambda: manager)
+    monkeypatch.setattr(render_page, "_wait_for_dom_stability", lambda *args: True)
+    result = render_page.render_saved_html(b"x", "https://example.com/", browser_path=str(executable))
+    assert result["desktop"]["status"] == "complete"
+    assert result["mobile"]["status"] == "partial"
+    assert manager.closed and all(context.closed for context in manager.contexts)
+
+
+@pytest.mark.parametrize("url", ["file:///etc/passwd", "http://127.0.0.1/", "https://name:secret@example.com/", "https://example.com/#x"])
+def test_saved_html_rejects_nonpublic_or_ambiguous_url(url):
+    with pytest.raises(ValueError):
+        render_page.render_saved_html(b"x", url, browser_path="/missing")
+
+
+def test_saved_html_rejects_size_browser_and_timeout_bounds(tmp_path):
+    executable = tmp_path / "browser"
+    executable.write_bytes(b"fixture")
+    executable.chmod(0o700)
+    with pytest.raises(ValueError, match="byte budget"):
+        render_page.render_saved_html(b"x" * (render_page.SAVED_HTML_LIMIT + 1), "https://example.com/", browser_path=str(executable))
+    with pytest.raises(ValueError, match="absolute browser"):
+        render_page.render_saved_html(b"x", "https://example.com/", browser_path="relative")
+    with pytest.raises(ValueError, match="timeout"):
+        render_page.render_saved_html(b"x", "https://example.com/", browser_path=str(executable), timeout_ms=0)
+
+
+def test_saved_html_bounds_console_diagnostics_and_preserves_charset(tmp_path, monkeypatch):
+    executable = tmp_path / "browser"
+    executable.write_bytes(b"fixture")
+    executable.chmod(0o700)
+    manager = _SavedManager()
+    monkeypatch.setattr(render_page, "sync_playwright", lambda: manager)
+    monkeypatch.setattr(render_page, "_wait_for_dom_stability", lambda *args: True)
+    def noisy_on(self, event, callback):
+        if event == "console":
+            for _ in range(100):
+                callback(SimpleNamespace(type="error", text="x" * 1000))
+    monkeypatch.setattr(_SavedContext, "on", noisy_on)
+    result = render_page.render_saved_html(b"x", "https://example.com/", browser_path=str(executable),
+                                           content_type="text/html; charset=windows-1252")
+    assert result["desktop"]["browser_version"] == "test-browser-1"
+    assert len(result["desktop"]["diagnostics"]) == 32
+    assert max(map(len, result["desktop"]["diagnostics"])) == 500
+    assert manager.contexts[0].actions[0][1]["headers"]["content-type"] == "text/html; charset=windows-1252"
+    with pytest.raises(ValueError, match="content type"):
+        render_page.render_saved_html(b"x", "https://example.com/", browser_path=str(executable),
+                                     content_type="text/html\r\nInvalid: value")
