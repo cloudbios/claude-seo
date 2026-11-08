@@ -13,15 +13,21 @@ implemented in this first pilot. There is no automatic dependency installer.
 From this source checkout:
 
 ```sh
-python3 scripts/stage_codex_pilot.py --output /private/tmp/seo-pilot-project
+python3 scripts/stage_codex_pilot.py --output /private/tmp/seo-pilot-project --register-agents
 ```
 
-For hosts that need explicit role registration, add `--register-agents`. This
-writes only the two role registrations to the staged `.codex/config.toml` and
+The tested desktop setup used `--register-agents`. This writes only the two
+role registrations to the staged `.codex/config.toml` and
 includes that file in the provenance manifest. It does not edit the user's
 Codex configuration or choose a model. If the host only loads project settings
 from a trusted Git project, initialize the temporary project with `git init`
 and review its settings through the host's normal trust flow.
+
+In a fresh local desktop chat on macOS, runtime `0.163.0-alpha.11.2` discovered
+the staged skill and ran both exact native roles successfully. The test used
+the generated registrations and a temporary Git project. See the
+[validation receipt](../../docs/codex/pilot-validation.md) for source identities,
+successful results and the initial partial run.
 
 On the tested CLI `0.154.0-alpha.6.2`, automatic registration was unavailable in
 the isolated test even with that file present. Explicit per-run registrations
@@ -38,8 +44,8 @@ options to `codex exec` (adjust the two absolute paths to your staged project):
 Use a model available to that host and ask the coordinator to use fresh role
 contexts. The tested CLI's first inherited-context spawn failed to locate its
 ephemeral parent; retrying with fresh contexts succeeded. Never substitute a
-generic role and report it as native discovery. Desktop automatic discovery
-still needs its own acceptance run.
+generic role and report it as native discovery. Verify discovery on the host
+you use; success in one version does not establish compatibility with all hosts.
 
 The output must be a new or empty directory. The stager copies the pilot skill,
 two role profiles, required source files and license; `stage-manifest.json`
@@ -60,6 +66,12 @@ then ask Codex to use `$seo-codex-pilot` for a public URL and a new output folde
 The skill captures once, delegates both reviews, validates their artifacts and
 builds `REPORT.md`. For supplied HTML, the capture command supports `--html`
 with an explicit base URL and labels the result as fixture evidence.
+
+If the capture is blocked by the host's network sandbox, preserve the partial
+run and diagnose the cause. In the tested desktop environment, default-sandbox
+DNS failed; the same safe capture succeeded through the host's normal network
+approval path in a new output directory. Keep URL/DNS/TLS safeguards enabled
+and honor approval failures. No global permission change is needed by the pilot.
 
 ## Boundaries and verification
 

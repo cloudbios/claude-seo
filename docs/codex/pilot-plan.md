@@ -1,8 +1,9 @@
 # Single-page Codex pilot plan
 
-Status: implemented; an explicit-registration CLI run completed end to end.
-Automatic desktop discovery remains unverified. The original scope below
-remains the acceptance checklist; see [validation results](pilot-validation.md).
+Status: implemented and verified end to end in a fresh local Codex desktop
+session, with a separate explicit-registration CLI run. The tested desktop
+used project-local role registrations and normal network approval. The scope
+below remains the acceptance checklist; see [validation results](pilot-validation.md).
 Baseline and findings: [compatibility audit](compatibility-audit.md).
 
 ## Outcome
@@ -142,6 +143,7 @@ accurate findings, safe scope and usable outputs.
 | Packaging/install/update | Accepted core and selected providers | Installs the fork by exact ref, owns only its files, preserves unrelated installs, supports recovery. |
 | Installed-suite replacement | Accepted package and explicit replacement scope | Recoverable cutover with no lost configuration or unverified claimed capabilities. |
 
-The pilot is implemented. The later stages remain proposals: no full-suite
+The one-page pilot is implemented and verified on the recorded desktop runtime.
+The later stages remain proposals: no full-suite
 replacement, hook trust change, provider integration or installed-suite
 migration is authorized by this pilot result.
