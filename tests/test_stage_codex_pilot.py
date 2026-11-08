@@ -25,7 +25,7 @@ class StagePilotTests(unittest.TestCase):
         self.base = Path(self.temporary.name).resolve()
         self.source = self.base / "source tree"
         self.source.mkdir()
-        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES:
+        for source, _ in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES + stage.VISUAL_FILES + stage.SITEMAP_FILES + stage.AGENTIC_FILES:
             path = self.source / source
             path.parent.mkdir(parents=True, exist_ok=True)
             path.write_text(f"fixture for {source}\n", encoding="utf-8")
@@ -208,6 +208,8 @@ class StagePilotTests(unittest.TestCase):
         self.assertNotIn("seo-codex-visual", config["agents"])
         self.assertNotIn("seo-codex-sitemap", config["agents"])
         self.assertFalse((self.output / "scripts/codex_sitemap.py").exists())
+        self.assertNotIn("seo-codex-agentic", config["agents"])
+        self.assertFalse((self.output / "scripts/codex_agentic.py").exists())
 
     def test_sitemap_option_is_scoped_and_independent_of_visual(self):
         manifest = stage.stage_pilot(self.output, source_root=self.source,
@@ -240,6 +242,44 @@ class StagePilotTests(unittest.TestCase):
         self.assertEqual(len(destinations), len(set(destinations)))
         config = tomllib.loads((self.output / ".codex/config.toml").read_text())
         self.assertEqual(len(config["agents"]), 8)
+
+    def test_agentic_option_is_scoped_and_only_imports_pure_helpers(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source,
+                                    agentic_report=True, register_agents=True)
+        self.assertEqual(len(manifest["files"]), 33)
+        added = {r["destination"] for r in manifest["files"]} - {
+            dest for _, dest in stage.COPY_FILES + stage.FOUNDATION_FILES + stage.CORE_FILES
+        }
+        self.assertEqual(added, {"scripts/codex_agentic.py", "scripts/lighthouse_agentic.py",
+                                ".codex/agents/seo-codex-agentic.toml",
+                                ".agents/skills/seo-codex-agentic/SKILL.md",
+                                ".agents/skills/seo-codex-agentic/references/review.md"})
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(set(config["agents"]), {
+            "seo-codex-technical", "seo-codex-schema", "seo-codex-content",
+            "seo-codex-images", "seo-codex-local", "seo-codex-hreflang", "seo-codex-agentic"
+        })
+        for name in ("google_auth.py", "agentic_check.py", "agentic_fix.py", "pagespeed_check.py", "codex_visual.py"):
+            self.assertFalse((self.output / "scripts" / name).exists())
+        self.assertIn("never invoke its CLI", (self.output / "AGENTS.md").read_text())
+        for row in manifest["files"] + manifest["generated_files"]:
+            self.assertEqual(row["sha256"], hashlib.sha256(
+                (self.output / row["destination"]).read_bytes()).hexdigest())
+
+    def test_all_three_optional_adapters_remain_additive(self):
+        manifest = stage.stage_pilot(self.output, source_root=self.source, sitemap_analysis=True,
+                                    visual_evidence=True, agentic_report=True, register_agents=True)
+        destinations = [row["destination"] for row in manifest["files"]]
+        self.assertEqual(len(destinations), 43)
+        self.assertEqual(len(destinations), len(set(destinations)))
+        config = tomllib.loads((self.output / ".codex/config.toml").read_text())
+        self.assertEqual(len(config["agents"]), 9)
+
+    def test_missing_agentic_helper_leaves_no_output(self):
+        (self.source / "scripts/lighthouse_agentic.py").unlink()
+        with self.assertRaisesRegex(stage.StageError, "Required pilot source is missing"):
+            stage.stage_pilot(self.output, source_root=self.source, agentic_report=True)
+        self.assertFalse(self.output.exists())
 
     def test_missing_sitemap_parser_leaves_no_output(self):
         (self.source / "scripts/sitemap_discovery.py").unlink()

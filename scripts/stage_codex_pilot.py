@@ -72,6 +72,14 @@ SITEMAP_FILES = (
     ("adapters/codex/skills/seo-codex-sitemap/references/review.md",
      ".agents/skills/seo-codex-sitemap/references/review.md"),
 )
+AGENTIC_FILES = (
+    ("scripts/lighthouse_agentic.py", "scripts/lighthouse_agentic.py"),
+    ("scripts/codex_agentic.py", "scripts/codex_agentic.py"),
+    ("adapters/codex/agents/seo-codex-agentic.toml", ".codex/agents/seo-codex-agentic.toml"),
+    ("adapters/codex/skills/seo-codex-agentic/SKILL.md", ".agents/skills/seo-codex-agentic/SKILL.md"),
+    ("adapters/codex/skills/seo-codex-agentic/references/review.md",
+     ".agents/skills/seo-codex-agentic/references/review.md"),
+)
 AGENT_REGISTRATION = '''[agents.seo-codex-technical]
 description = "Review the staged one-page pilot's shared capture for technical SEO signals and save evidence-linked findings."
 config_file = "agents/seo-codex-technical.toml"
@@ -107,6 +115,11 @@ SITEMAP_AGENT_REGISTRATION = '''
 description = "Review supplied sitemap XML and bounded captured-page membership evidence."
 config_file = "agents/seo-codex-sitemap.toml"
 '''
+AGENTIC_AGENT_REGISTRATION = '''
+[agents.seo-codex-agentic]
+description = "Interpret one saved Lighthouse Agentic Browsing report with version-bound evidence."
+config_file = "agents/seo-codex-agentic.toml"
+'''
 STAGE_INSTRUCTIONS = """# Bounded Codex SEO pilot
 
 Use only `.agents/skills/seo-codex-pilot/SKILL.md` for this pilot. Do not invoke
@@ -134,7 +147,7 @@ dedicated directory> run codex_pilot.py ...`. The state root must be supplied
 by the caller and must not overlap this source project. If it is missing,
 request it; do not borrow a global or Claude state/configuration directory.
 The Codex runner allows only `codex_pilot.py`, `codex_audit.py`,
-`codex_visual.py` and `codex_sitemap.py`; each must be present in this stage to run. It refuses
+`codex_visual.py`, `codex_sitemap.py` and `codex_agentic.py`; each must be present in this stage to run. It refuses
 installation and providers.
 Run its `doctor --json` before the audit. Its clean environment is process
 hygiene, not a replacement for the host sandbox or permissions.
@@ -161,6 +174,17 @@ Use a separate output directory and preserve the XML and any supplied verified
 page captures. Index children are not followed. A native sitemap review owns
 only its findings file; the coordinator validates and finalizes after the
 reviewer stops. This adapter does not generate or submit sitemaps.
+"""
+AGENTIC_INSTRUCTIONS = """
+## Optional saved Agentic Browsing report
+
+This stage includes `.agents/skills/seo-codex-agentic/SKILL.md`. Import an
+explicit saved Lighthouse or PSI JSON file through `codex_agentic.py` using
+the prepared runtime. The supporting Lighthouse module supplies pure scoring
+helpers only; never invoke its CLI or live PSI path. No browser, credentials
+or network requests are needed. Preserve the source and use separate output.
+The fraction is version-bound evidence from that recorded run, not a live
+site certification or prediction of search rankings or AI citations.
 """
 CORE_INSTRUCTIONS = """# Bounded Codex SEO core
 
@@ -218,6 +242,7 @@ def stage_pilot(
     core_orchestration: bool = False,
     visual_evidence: bool = False,
     sitemap_analysis: bool = False,
+    agentic_report: bool = False,
     schema_hook_python: Path | None = None,
 ) -> dict:
     """Copy the explicit allowlist into a new or existing empty directory.
@@ -247,13 +272,14 @@ def stage_pilot(
         if not hook_python.is_file() or not os.access(hook_python, os.X_OK):
             raise StageError("Hook interpreter must be an existing executable file")
 
-    core_orchestration = core_orchestration or visual_evidence or sitemap_analysis
+    core_orchestration = core_orchestration or visual_evidence or sitemap_analysis or agentic_report
     runtime_foundation = runtime_foundation or core_orchestration
     payloads: list[tuple[str, str, bytes]] = []
     sources = (COPY_FILES + (FOUNDATION_FILES if runtime_foundation else ())
                + (CORE_FILES if core_orchestration else ())
                + (VISUAL_FILES if visual_evidence else ())
-               + (SITEMAP_FILES if sitemap_analysis else ()))
+               + (SITEMAP_FILES if sitemap_analysis else ())
+               + (AGENTIC_FILES if agentic_report else ()))
     for source, destination in sources:
         path = root / source
         _reject_symlinks(path)
@@ -266,13 +292,15 @@ def stage_pilot(
     instructions = ((CORE_INSTRUCTIONS if core_orchestration else STAGE_INSTRUCTIONS)
                     + (FOUNDATION_INSTRUCTIONS if runtime_foundation else "")
                     + (VISUAL_INSTRUCTIONS if visual_evidence else "")
-                    + (SITEMAP_INSTRUCTIONS if sitemap_analysis else ""))
+                    + (SITEMAP_INSTRUCTIONS if sitemap_analysis else "")
+                    + (AGENTIC_INSTRUCTIONS if agentic_report else ""))
     generated = {"AGENTS.md": instructions.encode("utf-8")}
     if register_agents:
         generated[".codex/config.toml"] = (
             AGENT_REGISTRATION + (CORE_AGENT_REGISTRATION if core_orchestration else "")
             + (VISUAL_AGENT_REGISTRATION if visual_evidence else "")
             + (SITEMAP_AGENT_REGISTRATION if sitemap_analysis else "")
+            + (AGENTIC_AGENT_REGISTRATION if agentic_report else "")
         ).encode("utf-8")
     if hook_python is not None:
         argv = [str(hook_python), "-I", "-B", str(output / "hooks" / "validate-schema.py")]
@@ -330,6 +358,8 @@ def main(argv: list[str] | None = None) -> int:
                         help="Include opt-in offline visual capture and its native role; implies core orchestration")
     parser.add_argument("--sitemap-analysis", action="store_true",
                         help="Include saved XML sitemap analysis and its native role; implies core orchestration")
+    parser.add_argument("--agentic-report", action="store_true",
+                        help="Include saved Lighthouse JSON analysis and its native role; implies core orchestration")
     parser.add_argument("--schema-hook-python", type=Path,
                         help="Generate an untrusted local schema hook using this absolute prepared interpreter")
     args = parser.parse_args(argv)
@@ -340,6 +370,7 @@ def main(argv: list[str] | None = None) -> int:
                                core_orchestration=args.core_orchestration,
                                visual_evidence=args.visual_evidence,
                                sitemap_analysis=args.sitemap_analysis,
+                               agentic_report=args.agentic_report,
                                schema_hook_python=args.schema_hook_python)
     except (OSError, StageError) as exc:
         print(f"Pilot staging refused: {exc}", file=sys.stderr)

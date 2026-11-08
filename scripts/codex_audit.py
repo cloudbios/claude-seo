@@ -59,6 +59,16 @@ def route(workflow: str) -> dict:
                     "focus": "saved-xml-analysis"}
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional saved sitemap adapter is not staged; no discovery or URL fetch was started."}
+    if workflow == "agentic":
+        required = ("scripts/codex_agentic.py", "scripts/lighthouse_agentic.py",
+                    ".codex/agents/seo-codex-agentic.toml",
+                    ".agents/skills/seo-codex-agentic/SKILL.md",
+                    ".agents/skills/seo-codex-agentic/references/review.md")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-agentic",
+                    "focus": "saved-lighthouse-report"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional saved Lighthouse adapter is not staged; no browser, PSI request or provider was started."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}
