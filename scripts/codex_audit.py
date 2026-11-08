@@ -49,6 +49,16 @@ def route(workflow: str) -> dict:
                     "focus": "offline-saved-html"}
         return {"status": "unavailable", "workflow": workflow,
                 "reason": "The optional offline visual adapter is not staged; no browser or provider was started."}
+    if workflow == "sitemap":
+        required = ("scripts/codex_sitemap.py", "scripts/sitemap_discovery.py",
+                    ".codex/agents/seo-codex-sitemap.toml",
+                    ".agents/skills/seo-codex-sitemap/SKILL.md",
+                    ".agents/skills/seo-codex-sitemap/references/review.md")
+        if all((pilot.ROOT / path).is_file() for path in required):
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-sitemap",
+                    "focus": "saved-xml-analysis"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional saved sitemap adapter is not staged; no discovery or URL fetch was started."}
     if workflow == "doctor":
         return {"status": "available", "workflow": workflow, "target": "runtime",
                 "command": "scripts/runtime.py --host codex --state-root <absolute-root> doctor --json"}

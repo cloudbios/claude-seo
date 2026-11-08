@@ -131,6 +131,26 @@ def _valid_sitemap_url_syntax(value: str) -> bool:
     )
 
 
+def parse_sitemap_xml(content: bytes):
+    """Parse inert XML without DTDs, entity expansion, XInclude or network access.
+
+    Inspect the parsed document too: byte searches alone miss UTF-16 DOCTYPEs.
+    This seam deliberately does not validate sitemap vocabulary or fetch schemas.
+    """
+    parser = etree.XMLParser(resolve_entities=False, no_network=True, load_dtd=False,
+                             recover=False, huge_tree=False)
+    try:
+        root = etree.fromstring(content, parser=parser)
+    except (etree.XMLSyntaxError, ValueError) as exc:
+        raise ValueError("invalid XML") from exc
+    if root.getroottree().docinfo.doctype or any(isinstance(node, etree._Entity) for node in root.iter()):
+        raise ValueError("DOCTYPE and entities are not allowed in sitemap XML")
+    if any(isinstance(node.tag, str) and node.tag.startswith("{http://www.w3.org/2001/XInclude}")
+           for node in root.iter()):
+        raise ValueError("XInclude is not allowed in sitemap XML")
+    return root
+
+
 def _sitemap_kind(content: bytes, content_type: str, url: str) -> tuple[str | None, str | None]:
     if not content.strip():
         return None, "empty response"
@@ -138,18 +158,11 @@ def _sitemap_kind(content: bytes, content_type: str, url: str) -> tuple[str | No
         return None, "DOCTYPE is not allowed in sitemap XML"
 
     stripped = content.lstrip()
-    if stripped.startswith(b"<"):
+    if stripped.startswith((b"<", b"\xff\xfe", b"\xfe\xff", b"\xef\xbb\xbf", b"\x00<")):
         try:
-            parser = etree.XMLParser(
-                resolve_entities=False,
-                no_network=True,
-                load_dtd=False,
-                recover=False,
-                huge_tree=False,
-            )
-            root = etree.fromstring(content, parser=parser)
-        except (etree.XMLSyntaxError, ValueError):
-            return None, "invalid XML"
+            root = parse_sitemap_xml(content)
+        except ValueError as exc:
+            return None, str(exc)
         local = etree.QName(root).localname.lower()
         if local in {"urlset", "sitemapindex"}:
             return local, None
