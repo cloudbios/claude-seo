@@ -135,4 +135,3 @@ def escaped(value: str) -> str:
     value = " ".join(value.split())
     return "".join(html.escape(char, quote=True) if char in "&<>\"'" else
                    char if char.isalnum() or char == " " else f"&#{ord(char)};" for char in value)
-
