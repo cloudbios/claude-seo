@@ -486,9 +486,9 @@ def test_explicit_invalid_roles_are_rejected_before_output(sample, tmp_path, rol
 
 def test_six_roles_canonical_order_global_cap_and_complete_report(sample, tmp_path):
     output = tmp_path / "six"
-    audit.plan(tmp_path / "urls.json", output, roles=list(reversed(audit.SUPPORTED_ROLES)))
+    audit.plan(tmp_path / "urls.json", output, roles=list(reversed(audit.CORE_ROLES)))
     root, ledger = audit._load(output)
-    assert ledger["plan"]["roles"] == list(audit.SUPPORTED_ROLES)
+    assert ledger["plan"]["roles"] == list(audit.CORE_ROLES)
     assert len(ledger["tasks"]) == 12
     audit.capture(output)
     jobs = audit.next_jobs(output, 64)["jobs"]
@@ -513,7 +513,7 @@ def test_six_roles_canonical_order_global_cap_and_complete_report(sample, tmp_pa
     report = audit.report(output)
     assert report["status"] == "complete"
     text = Path(report["report"]).read_text()
-    for role in audit.SUPPORTED_ROLES:
+    for role in audit.CORE_ROLES:
         assert f"### {role.title()}: complete" in text
 
 
@@ -566,7 +566,7 @@ def test_extra_role_result_identity_and_missing_evidence(sample, tmp_path, role,
                                       "invalid-roles", "duplicate-roles", "noncanonical-roles"])
 def test_selected_roles_and_task_graph_reject_mutation(sample, tmp_path, mutation):
     output = tmp_path / "four"
-    audit.plan(tmp_path / "urls.json", output, roles=list(audit.SUPPORTED_ROLES))
+    audit.plan(tmp_path / "urls.json", output, roles=list(audit.CORE_ROLES))
     path = output / audit.MANIFEST
     ledger = json.loads(path.read_text())
     task_id = next(key for key in ledger["tasks"] if key.endswith(":images"))
@@ -581,7 +581,7 @@ def test_selected_roles_and_task_graph_reject_mutation(sample, tmp_path, mutatio
     else:
         ledger["plan"]["roles"] = {"invalid-roles": ["unknown"],
                                     "duplicate-roles": ["content", "content"],
-                                    "noncanonical-roles": list(reversed(audit.SUPPORTED_ROLES))}[mutation]
+                                    "noncanonical-roles": list(reversed(audit.CORE_ROLES))}[mutation]
         ledger["plan_sha256"] = audit.pilot.digest(audit.pilot.encode(ledger["plan"], compact=True))
     path.write_text(json.dumps(ledger))
     with pytest.raises(audit.AuditError):

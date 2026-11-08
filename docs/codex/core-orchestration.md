@@ -6,6 +6,8 @@ and a recoverable audit of 1–5 explicitly supplied pages. It reuses the same
 safe capture/parser/schema code and the same two native specialist profiles.
 The subsequent [content/image batch](content-images.md) extends explicit
 role selection while preserving original two-role plans.
+The optional [GEO source review](source-geo.md) adds an explicitly selected
+role for answer passages, attribution and declared preview controls.
 
 ## Supported scope
 

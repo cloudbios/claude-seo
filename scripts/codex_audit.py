@@ -26,11 +26,31 @@ MAX_MANIFEST_BYTES = 1024 * 1024
 MAX_INPUT_BYTES = 64 * 1024
 MANIFEST = "audit-manifest.json"
 ROLES = ("technical", "schema")
-SUPPORTED_ROLES = (*ROLES, "content", "images", "local", "hreflang")
+CORE_ROLES = (*ROLES, "content", "images", "local", "hreflang")
+SUPPORTED_ROLES = (*CORE_ROLES, "geo")
+GEO_RESOURCES = (
+    ".codex/agents/seo-codex-geo.toml",
+    ".agents/skills/seo-codex-geo/SKILL.md",
+    ".agents/skills/seo-codex-geo/references/review.md",
+    ".agents/skills/seo-codex-geo/LICENSE.txt",
+)
 
 
 class AuditError(ValueError):
     pass
+
+
+def _geo_available() -> bool:
+    if not (pilot.ROOT / "stage-manifest.json").is_file():
+        return False
+    if not all((pilot.ROOT / name).is_file() for name in GEO_RESOURCES):
+        return False
+    try:
+        source = pilot.provenance()
+        destinations = {entry["destination"] for entry in source["files"]}
+        return source["kind"] == "staged-copy" and set(GEO_RESOURCES).issubset(destinations)
+    except (pilot.PilotError, OSError, ValueError, KeyError, TypeError, RecursionError):
+        return False
 
 
 def route(workflow: str) -> dict:
@@ -40,6 +60,12 @@ def route(workflow: str) -> dict:
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-audit", "focus": "explicit-page-sample"}
     if workflow in ("content", "images", "local", "hreflang"):
         return {"status": "available", "workflow": workflow, "skill": "seo-codex-" + workflow, "focus": workflow}
+    if workflow == "geo":
+        if _geo_available():
+            return {"status": "available", "workflow": workflow, "skill": "seo-codex-geo",
+                    "focus": "source-passages-and-preview-controls"}
+        return {"status": "unavailable", "workflow": workflow,
+                "reason": "The optional GEO source-review payload is missing or fails staged provenance validation."}
     if workflow == "visual":
         required = ("scripts/codex_visual.py", ".codex/agents/seo-codex-visual.toml",
                     ".agents/skills/seo-codex-visual/SKILL.md",
@@ -179,6 +205,8 @@ def _new_plan(entries: object, source_file: Path, max_workers: int, roles: list[
 
 def plan(urls: Path, output: Path, max_workers: int = 2, roles: list[str] | None = None) -> dict:
     selected = _selected_roles(list(ROLES) if roles is None else roles)
+    if "geo" in selected and not _geo_available():
+        raise AuditError("GEO review requires the complete verified --geo-review stage")
     source = pilot.no_symlinks(urls)
     specification = _new_plan(_json(source, MAX_INPUT_BYTES), source, max_workers, selected)
     root = pilot.no_symlinks(output)

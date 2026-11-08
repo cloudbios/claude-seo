@@ -6,7 +6,7 @@ not a substitute for it. These phases adapt upstream
 `skills/seo/references/thinking-framework.md` and
 `thinking-framework-validate-act.md` under the included MIT license. They do
 not activate upstream provider, rendering, rewriting, baseline or scheduling
-workflows. Content, images, local and hreflang reviews remain limited to the
+workflows. Content, images, local, hreflang and GEO reviews remain limited to the
 assigned captured source and retained transport metadata.
 
 ## Perceive
@@ -48,6 +48,12 @@ pages. Missing return links, target availability, content equivalence and the
 search engine's canonical selection remain unverified. No declarations on a
 monolingual page need not be a defect. Do not amplify a single questionable
 annotation into a claim that the whole site's hreflang is ignored.
+
+For GEO, connect passage clarity, attribution and observed preview controls
+to the exact saved text. Preserve each meta tag's scope and raw header values.
+Treat crawler access, AI citations and live snippet behavior as unmeasured.
+Consolidate overlapping content/GEO recommendations into one proposed action
+with references to both native findings files. Keep both files intact.
 
 Prefer the underlying, evidenced cause over multiple recommendations for its
 symptoms. Separate observed markup from actual search-engine indexing, rich
